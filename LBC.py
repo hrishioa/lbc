@@ -102,13 +102,19 @@ def elevator_function_fitting(data, start, end, order_poly, pre_weight_factor = 
 		plt.plot(data[:,0], y_corrected, '.', markersize = 2.0, color = 'pink')
 		plt.show()
 
-	return c_[data[:,0], y_corrected]
+	return {
+		"corrected": c_[data[:,0], y_corrected],
+		"input_baseline": c_[x,y],
+		"baseline_step_fit": c_[data[:,0], y_fit],
+		"extracted_baseline": c_[data[:,0], y_baseline],
+		"signal_magnitude": p_solved[-1]
+	}
 
 def main():
 	data = synthetic_data(lower_l = -2., upper_l = 4., no_dp = 1000, c0 = 1., k = 4., a = [0.4, 0.05, -0.007], sigma = 0.02)
 	find_nearest(data, (-2., 1.0001, 5.)) # should hit all conditionals of find_nearest
-	data_corrected = elevator_function_fitting(data, start = 0., end = 2., order_poly = 2, plotting = True)
-	data_corrected_weighted = elevator_function_fitting(data, start = 0., end = 2., order_poly = 2, pre_weight_factor = 2., plotting = True)
+	data_corrected = elevator_function_fitting(data, start = 0., end = 2., order_poly = 2, plotting = True).corrected
+	data_corrected_weighted = elevator_function_fitting(data, start = 0., end = 2., order_poly = 2, pre_weight_factor = 2., plotting = True).corrected
 
 if __name__ == "__main__":
 	main()

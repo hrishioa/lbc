@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.css" rel="stylesheet">
+    
+</head>
+<body style="margin: auto 10%">
+    <!-- TODO: does the spreadsheet allow copy paste of external data -->
+    <!-- TODO: Plot whenever spreadsheet changes -->
+    <!-- TODO: Put the corrected data into a separate graph -->
+    <!-- TODO: Get rid of undefined from chart -->
+    <!-- TODO: Less decimal places in chart labels -->
+    <!-- TODO: Clear data button -->
+    <!-- TODO: Save graph somehow -->
+
+    <h1>Schnei de winder Correction</h1>
+    <div>
+        <canvas id="myChart" width="400" height="400"></canvas>
+        <h3 id="signal_magnitude">Signal Magnitude: --</h3>
+        <button id="resetZoom">Reset Zoom</button>
+    </div>
+    <br><br>
+    <h1>Synthetic Data</h1>
+    Lower Limit: <input type="number" id="lower_l" value="-2.0">    <br>
+    Upper Limit: <input type="number" id="upper_l" value="4.0">    <br>
+    Number of datapoints: <input type="number" id="no_dp" value="1000">    <br>
+    C0 (Y End Point): <input type="number" id="c0" value="1.0">    <br>
+    K (Signal steepness): <input type="number" id="k" value="4.0">    <br>
+    A (Baseline polynomial constants (a+bx+cx^2+...)): <input type="text" id="a" value="[0.4, 0.05, -0.007]">    <br>
+    Sigma (Gaussian noise in data): <input type="number" id="sigma" value="0.02">    <br><br>
+    <button id="genSynthetic">Generate Synthetic Data</button>
+    <br><br>
+    <h1>Baseline Correction</h1>
+    Start X: <input type="number" id="start" value="0">    <br>
+    End X: <input type="number" id="end" value="2">    <br>
+    Polynomial Degree: <input type="number" id="order_poly" value="2">    <br>
+    Pre Weight Factor: <input type="number" id="pre_weight_factor" value="2">    <br>
+    Post Weight Factor: <input type="number" id="post_weight_factor" value="1">    <br><br>
+    <button id="getLBC">Run Logistic Baseline Correction</button>
+    <br><br>
+
+    <h1>Input Data </h1>
+    <button id="plotData">Plot Input Data</button><br><br>
+    <div id="example"></div>
+    <h1>Export</h1>
+    <input type="text" id="dataName" placeholder="Name">
+    <button id="exportInputData">Export input to CSV</button>
+    <br><br>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.4.2/globalize.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.4"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.4.2/globalize-runtime/number.min.js"></script> -->
+
+    
+    <!-- Chart Script -->
+    <script>
+        window.chartColors = {
+            red: 'rgba(255, 99, 132, 0.5)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(75, 192, 192)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)'
+        };
+        var color = Chart.helpers.color;
+    </script>
+    
+    <!-- Table Script -->
+    <script>
+        let inputData = [['','']];
+        let chartInputDataset = {
+            label: 'Data',
+            borderColor: window.chartColors.red,
+            backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
+            data: []
+        };
+        let chartCorrectedData = {
+            label: 'Corrected Data',
+            borderColor: window.chartColors.blue,
+            backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
+            data: []
+        };
+
+        let chartSelectedBaseline = {
+            label: 'Selected Baseline Data Points',
+            borderColor: window.chartColors.green,
+            backgroundColor: color(window.chartColors.green).alpha(0.2).rgbString(),
+            data: [],
+            radius: 5,
+            // pointStyle: 'cross',
+            borderWidth: 2
+        };
+
+        let chartLogisticBaselineFit = {
+            label: 'Logistic Baseline Fit',
+            borderColor: window.chartColors.orange,
+            backgroundColor: color(window.chartColors.orange).alpha(0.2).rgbString(),
+            data: [],
+            type: 'line',
+            fill: false,
+            pointRadius: 0
+        };
+
+        let chartExtractedBaseline = {
+            label: 'Extracted Baseline Function',
+            borderColor: window.chartColors.purple,
+            backgroundColor: color(window.chartColors.purple).alpha(0.2).rgbString(),
+            data: [],
+            type: 'line',
+            fill: false,
+            pointRadius: 0
+        };
+
+        function dataFilled() {
+            if(inputData.length && inputData[0].length) {
+                let parsed = parseInputData();
+                if(parsed.filter(insides => insides.filter(isNaN).length > 0).length === 0)
+                    return true;
+            }
+            return false;
+        }
+        
+        function parseInputData() {
+            // Jesus fuck localization
+            return inputData.map(insides=>insides.map(val => parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))))            
+        }
+
+        var container = document.getElementById('example');
+        var inputTable = new Handsontable(container, {
+            data: inputData,
+            // rowHeaders: true,
+            height: 250,
+            contextMenu: true,
+            colHeaders: true,
+            allowEmpty: false,
+            filters: true,
+            dropdownMenu: true,
+            licenseKey: 'non-commercial-and-evaluation',
+            afterChange: (changes) => {
+                plotInputData(silent=true)
+            }
+        });
+
+        $('#resetZoom').click(() => {
+            window.myScatter.resetZoom();
+        })
+
+        var ctx = document.getElementById('myChart').getContext('2d');
+        window.myScatter = new Chart(ctx, {
+            type: 'bubble',
+            data: {
+                datasets: [
+                    chartInputDataset,
+                    chartCorrectedData,
+                    chartSelectedBaseline,
+                    chartLogisticBaselineFit,
+                    chartExtractedBaseline,
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                title: {
+                    display: true,
+                    text: 'Charts will show up here probably'
+                },
+                plugins: {
+                    zoom: {
+                        // Container for pan options
+                        // pan: {
+                        //     // Boolean to enable panning
+                        //     enabled: true,
+
+                        //     // Panning directions. Remove the appropriate direction to disable
+                        //     // Eg. 'y' would only allow panning in the y direction
+                        //     // A function that is called as the user is panning and returns the
+                        //     // available directions can also be used:
+                        //     //   mode: function({ chart }) {
+                        //     //     return 'xy';
+                        //     //   },
+                        //     mode: 'xy',
+
+                        //     rangeMin: {
+                        //         // Format of min pan range depends on scale type
+                        //         x: null,
+                        //         y: null
+                        //     },
+                        //     rangeMax: {
+                        //         // Format of max pan range depends on scale type
+                        //         x: null,
+                        //         y: null
+                        //     },
+
+                        //     // Function called while the user is panning
+                        //     onPan: function({chart}) { console.log(`I'm panning!!!`); },
+                        //     // Function called once panning is completed
+                        //     onPanComplete: function({chart}) { console.log(`I was panned!!!`); }
+                        // },
+
+                        // Container for zoom options
+                        zoom: {
+                            // Boolean to enable zooming
+                            enabled: true,
+
+                            // Enable drag-to-zoom behavior
+                            drag: true,
+
+                            // Drag-to-zoom rectangle style can be customized
+                            // drag: {
+                            // 	 borderColor: 'rgba(225,225,225,0.3)'
+                            // 	 borderWidth: 5,
+                            // 	 backgroundColor: 'rgb(225,225,225)'
+                            // },
+
+                            // Zooming directions. Remove the appropriate direction to disable
+                            // Eg. 'y' would only allow zooming in the y direction
+                            // A function that is called as the user is zooming and returns the
+                            // available directions can also be used:
+                            //   mode: function({ chart }) {
+                            //     return 'xy';
+                            //   },
+                            mode: 'xy',
+
+                            rangeMin: {
+                                // Format of min zoom range depends on scale type
+                                x: null,
+                                y: null
+                            },
+                            rangeMax: {
+                                // Format of max zoom range depends on scale type
+                                x: null,
+                                y: null
+                            },
+
+                            // Speed of zoom via mouse wheel
+                            // (percentage of zoom on a wheel event)
+                            speed: 0.1,
+
+                            // // Function called while the user is zooming
+                            // onZoom: function({chart}) { console.log(`I'm zooming!!!`); },
+                            // // Function called once zooming is completed
+                            // onZoomComplete: function({chart}) { console.log(`I was zoomed!!!`); }
+                        }
+                    }
+                }
+            },
+        });        
+        
+        var exportPlugin = inputTable.getPlugin('exportFile');
+
+        function plotInputData(silent=true) {
+            if(!dataFilled()) {
+                if(silent)
+                    return;
+                else
+                    return alert("Input data is empty or invalid");
+            }
+
+            chartInputDataset.data = parseInputData().map(row => ({x:row[0],y:row[1]}));
+            window.myScatter.update();     
+        }
+
+        $('#plotData').click(() => {
+            plotInputData(silent=false);
+        })
+        
+        $('#exportInputData').click(() => {
+            if(!dataFilled())
+                return alert("Data invalid or empty");
+            exportPlugin.downloadFile('csv', {
+                bom: false,  
+                columnDelimiter: ',',
+                columnHeaders: false,
+                exportHiddenColumns: true,
+                exportHiddenRows: true,
+                fileExtension: 'csv',
+                filename: `LBC-${$('#dataName').val()}-CSV-file_[YYYY]-[MM]-[DD]`,
+                mimeType: 'text/csv',
+                rowDelimiter: '\r\n',
+                rowHeaders: true
+            });
+        })
+        
+        $('#getLBC').click(() => {
+            if(!dataFilled())
+                return alert("Data invalid or empty");
+            $.ajax({
+                type: 'POST',
+                url: '/lbc',
+                data: JSON.stringify({
+                    data: parseInputData(),
+                    start: parseFloat($('#start').val()), 
+                    end: parseFloat($('#end').val()), 
+                    order_poly: parseInt($('#order_poly').val()), 
+                    pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
+                    post_weight_factor: parseFloat($('#post_weight_factor').val()),
+                }),
+                contentType: 'application/json',
+                dataType: 'json',
+                failure: (errMsg) => alert(errMsg),
+                success: (data) => {
+                    if(!data.success)
+                        return alert(data.message);
+
+                    console.log("Got response from lbc - ",data)
+                    $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
+                    chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
+                    chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
+                    chartLogisticBaselineFit.data = data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]}));
+                    chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
+
+                    // window.myScatter.data.datasets.push({
+                    //     label: 'Corrected Data',
+                    //     borderColor: window.chartColors.blue,
+                    //     backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
+                    //     data: data.corrected.map(row => ({x:row[0],y:row[1]}))
+                    // })
+
+                    // window.myScatter.data.datasets.push({
+                    //     label: 'Selected Baseline Data Points',
+                    //     borderColor: window.chartColors.green,
+                    //     backgroundColor: color(window.chartColors.green).alpha(0.2).rgbString(),
+                    //     data: data["input_baseline"].map(row => ({x:row[0],y:row[1]})),
+                    //     radius: 5,
+                    //     // pointStyle: 'cross',
+                    //     borderWidth: 2
+                    // })
+
+                    // window.myScatter.data.datasets.push({
+                    //     label: 'Logistic Baseline Fit',
+                    //     borderColor: window.chartColors.orange,
+                    //     backgroundColor: color(window.chartColors.orange).alpha(0.2).rgbString(),
+                    //     data: data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]})),
+                    //     type: 'line',
+                    //     fill: false,
+                    //     pointRadius: 0
+                    // })
+
+                    // window.myScatter.data.datasets.push({
+                    //     label: 'Extracted Baseline Function',
+                    //     borderColor: window.chartColors.purple,
+                    //     backgroundColor: color(window.chartColors.purple).alpha(0.2).rgbString(),
+                    //     data: data["extracted_baseline"].map(row => ({x:row[0],y:row[1]})),
+                    //     type: 'line',
+                    //     fill: false,
+                    //     pointRadius: 0
+                    // })
+
+                    window.myScatter.update();
+                }
+            })
+        })
+
+        $('#genSynthetic').click(() => {
+            $.ajax({
+                type: 'POST',
+                url: '/synthetic_data',
+                data: JSON.stringify({
+                    lower_l : parseFloat($('#lower_l').val()), 
+                    upper_l : parseFloat($('#upper_l').val()), 
+                    no_dp : parseInt($('#no_dp').val()), 
+                    c0 : parseFloat($('#c0').val()), 
+                    k : parseFloat($('#k').val()), 
+                    a : JSON.parse($('#a').val()), 
+                    sigma : parseFloat($('#sigma').val())                
+                }),
+                contentType: "application/json",
+                dataType: "json",
+                failure: (errMsg) => alert(errMsg),
+                success: (data) => {
+                    if(data.success) {
+                        console.log("Got synthetic data.");
+                        inputData = data.data
+                        inputTable.loadData(inputData);                       
+
+                        // chartInputDataset.data = inputData.map(row => ({x:row[0],y:row[1]}));
+
+                        // // window.myScatter.data.datasets.push({
+                        // //     label: 'Data',
+                        // //     borderColor: window.chartColors.red,
+                        // //     backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
+                        // //     data: inputData.map(row => ({x:row[0],y:row[1]}))
+                        // // });
+
+                        // window.myScatter.update();
+                    } else {
+                        console.log("Failure - ",data)
+                    }
+                }            
+            })
+        })
+        
+        
+    </script>
+    
+</body>
+</html>
