@@ -126,5 +126,13 @@ def lbc():
 def index():
     return current_app.send_static_file('index.html')
 
+@app.route('/index2')
+def index2():
+    return current_app.send_static_file('index2.html')
+
+@app.route('/index.js')
+def send_js():
+    return current_app.send_static_file('index.js')
+
 if __name__ == '__main__':
     app.run(threaded=True, port=5000)
