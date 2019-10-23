@@ -19,11 +19,18 @@
 
     <h1>Schnei de winder Correction</h1>
     <div>
-        <canvas id="myChart" width="400" height="400"></canvas>
+        <canvas id="inputChart" width="400" height="400"></canvas>
+    </div>
+        <br><br>
+    <div>
+        <canvas id="outputChart" width="400" height="400"></canvas>        
+    </div>
+    <div>
         <h3 id="signal_magnitude">Signal Magnitude: --</h3>
         <button id="resetZoom">Reset Zoom</button>
     </div>
     <br><br>
+
     <h1>Synthetic Data</h1>
     Lower Limit: <input type="number" id="lower_l" value="-2.0">    <br>
     Upper Limit: <input type="number" id="upper_l" value="4.0">    <br>
@@ -34,6 +41,7 @@
     Sigma (Gaussian noise in data): <input type="number" id="sigma" value="0.02">    <br><br>
     <button id="genSynthetic">Generate Synthetic Data</button>
     <br><br>
+
     <h1>Baseline Correction</h1>
     Start X: <input type="number" id="start" value="0">    <br>
     End X: <input type="number" id="end" value="2">    <br>
@@ -44,11 +52,16 @@
     <br><br>
 
     <h1>Input Data </h1>
+    <div id="outputSpreadsheet"></div>
+    <br><br>
+    <input type="file" id="input_file" />
+    <button id="loadFile">Load Input File</button><br>
     <button id="plotData">Plot Input Data</button><br><br>
-    <div id="example"></div>
+    <div id="inputSpreadsheet"></div>
     <h1>Export</h1>
-    <input type="text" id="dataName" placeholder="Name">
     <button id="exportInputData">Export input to CSV</button>
+    <br>
+    <button id="exportOutputData">Export output to CSV</button>
     <br><br>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -58,7 +71,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.4"></script>
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.4.2/globalize-runtime/number.min.js"></script> -->
 
     
     <!-- Chart Script -->
@@ -78,6 +90,7 @@
     <!-- Table Script -->
     <script>
         let inputData = [['','']];
+        let outputData = [];
         let chartInputDataset = {
             label: 'Data',
             borderColor: window.chartColors.red,
@@ -90,7 +103,6 @@
             backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
             data: []
         };
-
         let chartSelectedBaseline = {
             label: 'Selected Baseline Data Points',
             borderColor: window.chartColors.green,
@@ -100,7 +112,6 @@
             // pointStyle: 'cross',
             borderWidth: 2
         };
-
         let chartLogisticBaselineFit = {
             label: 'Logistic Baseline Fit',
             borderColor: window.chartColors.orange,
@@ -110,7 +121,6 @@
             fill: false,
             pointRadius: 0
         };
-
         let chartExtractedBaseline = {
             label: 'Extracted Baseline Function',
             borderColor: window.chartColors.purple,
@@ -135,13 +145,26 @@
             return inputData.map(insides=>insides.map(val => parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))))            
         }
 
-        var container = document.getElementById('example');
-        var inputTable = new Handsontable(container, {
-            data: inputData,
-            // rowHeaders: true,
+        var outputTableContainer = document.getElementById('outputSpreadsheet');
+        var outputTable = new Handsontable(outputTableContainer, {
+            data: outputData,
             height: 250,
+            colHeaders: ['X', 'Y', 'Corrected Y', 'Logistic Baseline Fit', 'Extracted Baseline Function'],
+            readOnly: true,
             contextMenu: true,
-            colHeaders: true,
+            allowEmpty: false,
+            filters: true,
+            dropdownMenu: false,
+            licenseKey: 'non-commercial-and-evaluation',
+        });
+
+        var inputTableContainer = document.getElementById('inputSpreadsheet');
+        var inputTable = new Handsontable(inputTableContainer, {
+            data: inputData,
+            height: 250,
+            editor: false,
+            contextMenu: true,
+            colHeaders: ['X', 'Y'],
             allowEmpty: false,
             filters: true,
             dropdownMenu: true,
@@ -151,17 +174,43 @@
             }
         });
 
-        $('#resetZoom').click(() => {
-            window.myScatter.resetZoom();
+        $('#loadFile').click(() => {
+            let formData = new FormData();
+            let inputFile = $('#input_file')[0].files[0];
+            formData.append('input_file', inputFile);            
+
+            $.ajax({
+                url: '/load',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                failure: (errMsg) => alert("Error loading file - ",errMsg),
+                success: (data) => {
+                    if(data.success) {
+                        // console.log("Success - ",data.message);
+                        // console.log("Data - ",data.data);
+                        inputData = data.data;
+                        inputTable.loadData(inputData);
+
+                    } else {
+                        console.log("Error loading file - ",data.message);
+                    }
+                }
+            })
         })
 
-        var ctx = document.getElementById('myChart').getContext('2d');
-        window.myScatter = new Chart(ctx, {
+        $('#resetZoom').click(() => {
+            window.inputChart.resetZoom();
+            window.outputChart.resetZoom();
+        })
+
+        let inputCtx = document.getElementById('inputChart').getContext('2d');
+        window.inputChart = new Chart(inputCtx, {
             type: 'bubble',
             data: {
                 datasets: [
                     chartInputDataset,
-                    chartCorrectedData,
                     chartSelectedBaseline,
                     chartLogisticBaselineFit,
                     chartExtractedBaseline,
@@ -171,91 +220,66 @@
                 maintainAspectRatio: false,
                 title: {
                     display: true,
-                    text: 'Charts will show up here probably'
+                    text: 'Ingress and fit'
                 },
                 plugins: {
                     zoom: {
-                        // Container for pan options
-                        // pan: {
-                        //     // Boolean to enable panning
-                        //     enabled: true,
-
-                        //     // Panning directions. Remove the appropriate direction to disable
-                        //     // Eg. 'y' would only allow panning in the y direction
-                        //     // A function that is called as the user is panning and returns the
-                        //     // available directions can also be used:
-                        //     //   mode: function({ chart }) {
-                        //     //     return 'xy';
-                        //     //   },
-                        //     mode: 'xy',
-
-                        //     rangeMin: {
-                        //         // Format of min pan range depends on scale type
-                        //         x: null,
-                        //         y: null
-                        //     },
-                        //     rangeMax: {
-                        //         // Format of max pan range depends on scale type
-                        //         x: null,
-                        //         y: null
-                        //     },
-
-                        //     // Function called while the user is panning
-                        //     onPan: function({chart}) { console.log(`I'm panning!!!`); },
-                        //     // Function called once panning is completed
-                        //     onPanComplete: function({chart}) { console.log(`I was panned!!!`); }
-                        // },
-
-                        // Container for zoom options
                         zoom: {
-                            // Boolean to enable zooming
                             enabled: true,
-
-                            // Enable drag-to-zoom behavior
                             drag: true,
-
-                            // Drag-to-zoom rectangle style can be customized
-                            // drag: {
-                            // 	 borderColor: 'rgba(225,225,225,0.3)'
-                            // 	 borderWidth: 5,
-                            // 	 backgroundColor: 'rgb(225,225,225)'
-                            // },
-
-                            // Zooming directions. Remove the appropriate direction to disable
-                            // Eg. 'y' would only allow zooming in the y direction
-                            // A function that is called as the user is zooming and returns the
-                            // available directions can also be used:
-                            //   mode: function({ chart }) {
-                            //     return 'xy';
-                            //   },
                             mode: 'xy',
-
                             rangeMin: {
-                                // Format of min zoom range depends on scale type
                                 x: null,
                                 y: null
                             },
                             rangeMax: {
-                                // Format of max zoom range depends on scale type
                                 x: null,
                                 y: null
                             },
-
-                            // Speed of zoom via mouse wheel
-                            // (percentage of zoom on a wheel event)
                             speed: 0.1,
+                        }
+                    }
+                }
+            },
+        });        
 
-                            // // Function called while the user is zooming
-                            // onZoom: function({chart}) { console.log(`I'm zooming!!!`); },
-                            // // Function called once zooming is completed
-                            // onZoomComplete: function({chart}) { console.log(`I was zoomed!!!`); }
+        let outputCtx = document.getElementById('outputChart').getContext('2d');
+        window.outputChart = new Chart(outputCtx, {
+            type: 'bubble',
+            data: {
+                datasets: [
+                    chartCorrectedData,
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                title: {
+                    display: true,
+                    text: 'Corrected'
+                },
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            enabled: true,
+                            drag: true,
+                            mode: 'xy',
+                            rangeMin: {
+                                x: null,
+                                y: null
+                            },
+                            rangeMax: {
+                                x: null,
+                                y: null
+                            },
+                            speed: 0.1,
                         }
                     }
                 }
             },
         });        
         
-        var exportPlugin = inputTable.getPlugin('exportFile');
+        let inputExportPlugin = inputTable.getPlugin('exportFile');
+        let outputExportPlugin = outputTable.getPlugin('exportFile');
 
         function plotInputData(silent=true) {
             if(!dataFilled()) {
@@ -266,7 +290,7 @@
             }
 
             chartInputDataset.data = parseInputData().map(row => ({x:row[0],y:row[1]}));
-            window.myScatter.update();     
+            window.inputChart.update();     
         }
 
         $('#plotData').click(() => {
@@ -276,17 +300,33 @@
         $('#exportInputData').click(() => {
             if(!dataFilled())
                 return alert("Data invalid or empty");
-            exportPlugin.downloadFile('csv', {
+            inputExportPlugin.downloadFile('csv', {
                 bom: false,  
                 columnDelimiter: ',',
-                columnHeaders: false,
+                columnHeaders: true,
+                rowHeaders: false,
                 exportHiddenColumns: true,
                 exportHiddenRows: true,
                 fileExtension: 'csv',
-                filename: `LBC-${$('#dataName').val()}-CSV-file_[YYYY]-[MM]-[DD]`,
+                filename: `LBC-input-CSV-[YYYY]-[MM]-[DD]`,
                 mimeType: 'text/csv',
                 rowDelimiter: '\r\n',
-                rowHeaders: true
+            });
+        })
+        $('#exportOutputData').click(() => {
+            if(outputData.length <= 0)
+                return alert("Data invalid or empty");
+            outputExportPlugin.downloadFile('csv', {
+                bom: false,  
+                columnDelimiter: ',',
+                columnHeaders: true,
+                rowHeaders: false,
+                exportHiddenColumns: true,
+                exportHiddenRows: true,
+                fileExtension: 'csv',
+                filename: `LBC-output-CSV-[YYYY]-[MM]-[DD]`,
+                mimeType: 'text/csv',
+                rowDelimiter: '\r\n',
             });
         })
         
@@ -317,45 +357,21 @@
                     chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
                     chartLogisticBaselineFit.data = data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]}));
                     chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
+                    window.inputChart.update();
+                    window.outputChart.update();
 
-                    // window.myScatter.data.datasets.push({
-                    //     label: 'Corrected Data',
-                    //     borderColor: window.chartColors.blue,
-                    //     backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
-                    //     data: data.corrected.map(row => ({x:row[0],y:row[1]}))
-                    // })
-
-                    // window.myScatter.data.datasets.push({
-                    //     label: 'Selected Baseline Data Points',
-                    //     borderColor: window.chartColors.green,
-                    //     backgroundColor: color(window.chartColors.green).alpha(0.2).rgbString(),
-                    //     data: data["input_baseline"].map(row => ({x:row[0],y:row[1]})),
-                    //     radius: 5,
-                    //     // pointStyle: 'cross',
-                    //     borderWidth: 2
-                    // })
-
-                    // window.myScatter.data.datasets.push({
-                    //     label: 'Logistic Baseline Fit',
-                    //     borderColor: window.chartColors.orange,
-                    //     backgroundColor: color(window.chartColors.orange).alpha(0.2).rgbString(),
-                    //     data: data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]})),
-                    //     type: 'line',
-                    //     fill: false,
-                    //     pointRadius: 0
-                    // })
-
-                    // window.myScatter.data.datasets.push({
-                    //     label: 'Extracted Baseline Function',
-                    //     borderColor: window.chartColors.purple,
-                    //     backgroundColor: color(window.chartColors.purple).alpha(0.2).rgbString(),
-                    //     data: data["extracted_baseline"].map(row => ({x:row[0],y:row[1]})),
-                    //     type: 'line',
-                    //     fill: false,
-                    //     pointRadius: 0
-                    // })
-
-                    window.myScatter.update();
+                    outputData = [];
+                    inputData.forEach((element, index) => {
+                        // console.log("pushing");
+                        outputData.push([
+                            inputData[index][0],
+                            inputData[index][1],
+                            data["corrected"][index][1],
+                            data["baseline_step_fit"][index][1],
+                            data["extracted_baseline"][index][1]
+                        ])
+                    });
+                    outputTable.loadData(outputData);
                 }
             })
         })
@@ -381,17 +397,6 @@
                         console.log("Got synthetic data.");
                         inputData = data.data
                         inputTable.loadData(inputData);                       
-
-                        // chartInputDataset.data = inputData.map(row => ({x:row[0],y:row[1]}));
-
-                        // // window.myScatter.data.datasets.push({
-                        // //     label: 'Data',
-                        // //     borderColor: window.chartColors.red,
-                        // //     backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
-                        // //     data: inputData.map(row => ({x:row[0],y:row[1]}))
-                        // // });
-
-                        // window.myScatter.update();
                     } else {
                         console.log("Failure - ",data)
                     }
