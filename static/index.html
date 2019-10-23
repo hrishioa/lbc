@@ -67,14 +67,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.4.2/globalize.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.4"></script>
 
     
     <!-- Chart Script -->
     <script>
+        //######################## CONSTANTS ############################################
         window.chartColors = {
             red: 'rgba(255, 99, 132, 0.5)',
             orange: 'rgb(255, 159, 64)',
@@ -84,11 +83,7 @@
             purple: 'rgb(153, 102, 255)',
             grey: 'rgb(201, 203, 207)'
         };
-        var color = Chart.helpers.color;
-    </script>
-    
-    <!-- Table Script -->
-    <script>
+        let color = Chart.helpers.color;
         let inputData = [['','']];
         let outputData = [];
         let chartInputDataset = {
@@ -121,7 +116,7 @@
             fill: false,
             pointRadius: 0
         };
-        let chartExtractedBaseline = {
+        let chartExtractedBaseline = {            
             label: 'Extracted Baseline Function',
             borderColor: window.chartColors.purple,
             backgroundColor: color(window.chartColors.purple).alpha(0.2).rgbString(),
@@ -130,7 +125,13 @@
             fill: false,
             pointRadius: 0
         };
+        let outputTableContainer = document.getElementById('outputSpreadsheet');
+        let inputTableContainer = document.getElementById('inputSpreadsheet');
+        let inputCtx = document.getElementById('inputChart').getContext('2d');
+        let outputCtx = document.getElementById('outputChart').getContext('2d');
+        let outputTable, inputTable, inputExportPlugin, outputExportPlugin;
 
+        //############################# FUNCTIONS #####################################
         function dataFilled() {
             if(inputData.length && inputData[0].length) {
                 let parsed = parseInputData();
@@ -145,142 +146,6 @@
             return inputData.map(insides=>insides.map(val => parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))))            
         }
 
-        var outputTableContainer = document.getElementById('outputSpreadsheet');
-        var outputTable = new Handsontable(outputTableContainer, {
-            data: outputData,
-            height: 250,
-            colHeaders: ['X', 'Y', 'Corrected Y', 'Logistic Baseline Fit', 'Extracted Baseline Function'],
-            readOnly: true,
-            contextMenu: true,
-            allowEmpty: false,
-            filters: true,
-            dropdownMenu: false,
-            licenseKey: 'non-commercial-and-evaluation',
-        });
-
-        var inputTableContainer = document.getElementById('inputSpreadsheet');
-        var inputTable = new Handsontable(inputTableContainer, {
-            data: inputData,
-            height: 250,
-            editor: false,
-            contextMenu: true,
-            colHeaders: ['X', 'Y'],
-            allowEmpty: false,
-            filters: true,
-            dropdownMenu: true,
-            licenseKey: 'non-commercial-and-evaluation',
-            afterChange: (changes) => {
-                plotInputData(silent=true)
-            }
-        });
-
-        $('#loadFile').click(() => {
-            let formData = new FormData();
-            let inputFile = $('#input_file')[0].files[0];
-            formData.append('input_file', inputFile);            
-
-            $.ajax({
-                url: '/load',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                failure: (errMsg) => alert("Error loading file - ",errMsg),
-                success: (data) => {
-                    if(data.success) {
-                        // console.log("Success - ",data.message);
-                        // console.log("Data - ",data.data);
-                        inputData = data.data;
-                        inputTable.loadData(inputData);
-
-                    } else {
-                        console.log("Error loading file - ",data.message);
-                    }
-                }
-            })
-        })
-
-        $('#resetZoom').click(() => {
-            window.inputChart.resetZoom();
-            window.outputChart.resetZoom();
-        })
-
-        let inputCtx = document.getElementById('inputChart').getContext('2d');
-        window.inputChart = new Chart(inputCtx, {
-            type: 'bubble',
-            data: {
-                datasets: [
-                    chartInputDataset,
-                    chartSelectedBaseline,
-                    chartLogisticBaselineFit,
-                    chartExtractedBaseline,
-                ]
-            },
-            options: {
-                maintainAspectRatio: false,
-                title: {
-                    display: true,
-                    text: 'Ingress and fit'
-                },
-                plugins: {
-                    zoom: {
-                        zoom: {
-                            enabled: true,
-                            drag: true,
-                            mode: 'xy',
-                            rangeMin: {
-                                x: null,
-                                y: null
-                            },
-                            rangeMax: {
-                                x: null,
-                                y: null
-                            },
-                            speed: 0.1,
-                        }
-                    }
-                }
-            },
-        });        
-
-        let outputCtx = document.getElementById('outputChart').getContext('2d');
-        window.outputChart = new Chart(outputCtx, {
-            type: 'bubble',
-            data: {
-                datasets: [
-                    chartCorrectedData,
-                ]
-            },
-            options: {
-                maintainAspectRatio: false,
-                title: {
-                    display: true,
-                    text: 'Corrected'
-                },
-                plugins: {
-                    zoom: {
-                        zoom: {
-                            enabled: true,
-                            drag: true,
-                            mode: 'xy',
-                            rangeMin: {
-                                x: null,
-                                y: null
-                            },
-                            rangeMax: {
-                                x: null,
-                                y: null
-                            },
-                            speed: 0.1,
-                        }
-                    }
-                }
-            },
-        });        
-        
-        let inputExportPlugin = inputTable.getPlugin('exportFile');
-        let outputExportPlugin = outputTable.getPlugin('exportFile');
-
         function plotInputData(silent=true) {
             if(!dataFilled()) {
                 if(silent)
@@ -293,118 +158,261 @@
             window.inputChart.update();     
         }
 
-        $('#plotData').click(() => {
-            plotInputData(silent=false);
-        })
-        
-        $('#exportInputData').click(() => {
-            if(!dataFilled())
-                return alert("Data invalid or empty");
-            inputExportPlugin.downloadFile('csv', {
-                bom: false,  
-                columnDelimiter: ',',
-                columnHeaders: true,
-                rowHeaders: false,
-                exportHiddenColumns: true,
-                exportHiddenRows: true,
-                fileExtension: 'csv',
-                filename: `LBC-input-CSV-[YYYY]-[MM]-[DD]`,
-                mimeType: 'text/csv',
-                rowDelimiter: '\r\n',
+        function initializeElements() {
+            outputTable = new Handsontable(outputTableContainer, {
+                data: outputData,
+                height: 250,
+                colHeaders: ['X', 'Y', 'Corrected Y', 'Logistic Baseline Fit', 'Extracted Baseline Function'],
+                readOnly: true,
+                contextMenu: true,
+                allowEmpty: false,
+                filters: true,
+                dropdownMenu: false,
+                licenseKey: 'non-commercial-and-evaluation',
             });
-        })
-        $('#exportOutputData').click(() => {
-            if(outputData.length <= 0)
-                return alert("Data invalid or empty");
-            outputExportPlugin.downloadFile('csv', {
-                bom: false,  
-                columnDelimiter: ',',
-                columnHeaders: true,
-                rowHeaders: false,
-                exportHiddenColumns: true,
-                exportHiddenRows: true,
-                fileExtension: 'csv',
-                filename: `LBC-output-CSV-[YYYY]-[MM]-[DD]`,
-                mimeType: 'text/csv',
-                rowDelimiter: '\r\n',
-            });
-        })
-        
-        $('#getLBC').click(() => {
-            if(!dataFilled())
-                return alert("Data invalid or empty");
-            $.ajax({
-                type: 'POST',
-                url: '/lbc',
-                data: JSON.stringify({
-                    data: parseInputData(),
-                    start: parseFloat($('#start').val()), 
-                    end: parseFloat($('#end').val()), 
-                    order_poly: parseInt($('#order_poly').val()), 
-                    pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
-                    post_weight_factor: parseFloat($('#post_weight_factor').val()),
-                }),
-                contentType: 'application/json',
-                dataType: 'json',
-                failure: (errMsg) => alert(errMsg),
-                success: (data) => {
-                    if(!data.success)
-                        return alert(data.message);
-
-                    console.log("Got response from lbc - ",data)
-                    $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
-                    chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
-                    chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
-                    chartLogisticBaselineFit.data = data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]}));
-                    chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
-                    window.inputChart.update();
-                    window.outputChart.update();
-
-                    outputData = [];
-                    inputData.forEach((element, index) => {
-                        // console.log("pushing");
-                        outputData.push([
-                            inputData[index][0],
-                            inputData[index][1],
-                            data["corrected"][index][1],
-                            data["baseline_step_fit"][index][1],
-                            data["extracted_baseline"][index][1]
-                        ])
-                    });
-                    outputTable.loadData(outputData);
+            
+            inputTable = new Handsontable(inputTableContainer, {
+                data: inputData,
+                height: 250,
+                editor: false,
+                contextMenu: true,
+                colHeaders: ['X', 'Y'],
+                allowEmpty: false,
+                filters: true,
+                dropdownMenu: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                afterChange: (changes) => {
+                    plotInputData(silent=true)
                 }
-            })
-        })
+            });
 
-        $('#genSynthetic').click(() => {
-            $.ajax({
-                type: 'POST',
-                url: '/synthetic_data',
-                data: JSON.stringify({
-                    lower_l : parseFloat($('#lower_l').val()), 
-                    upper_l : parseFloat($('#upper_l').val()), 
-                    no_dp : parseInt($('#no_dp').val()), 
-                    c0 : parseFloat($('#c0').val()), 
-                    k : parseFloat($('#k').val()), 
-                    a : JSON.parse($('#a').val()), 
-                    sigma : parseFloat($('#sigma').val())                
-                }),
-                contentType: "application/json",
-                dataType: "json",
-                failure: (errMsg) => alert(errMsg),
-                success: (data) => {
-                    if(data.success) {
-                        console.log("Got synthetic data.");
-                        inputData = data.data
-                        inputTable.loadData(inputData);                       
-                    } else {
-                        console.log("Failure - ",data)
+            inputExportPlugin = inputTable.getPlugin('exportFile');
+            outputExportPlugin = outputTable.getPlugin('exportFile');
+
+            window.inputChart = new Chart(inputCtx, {
+                type: 'bubble',
+                data: {
+                    datasets: [
+                        chartInputDataset,
+                        chartSelectedBaseline,
+                        chartLogisticBaselineFit,
+                        chartExtractedBaseline,
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Ingress and fit'
+                    },
+                    plugins: {
+                        zoom: {
+                            zoom: {
+                                enabled: true,
+                                drag: true,
+                                mode: 'xy',
+                                rangeMin: {
+                                    x: null,
+                                    y: null
+                                },
+                                rangeMax: {
+                                    x: null,
+                                    y: null
+                                },
+                                speed: 0.1,
+                            }
+                        }
                     }
-                }            
+                },
+            });   
+
+            window.outputChart = new Chart(outputCtx, {
+                type: 'bubble',
+                data: {
+                    datasets: [
+                        chartCorrectedData,
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Corrected'
+                    },
+                    plugins: {
+                        zoom: {
+                            zoom: {
+                                enabled: true,
+                                drag: true,
+                                mode: 'xy',
+                                rangeMin: {
+                                    x: null,
+                                    y: null
+                                },
+                                rangeMax: {
+                                    x: null,
+                                    y: null
+                                },
+                                speed: 0.1,
+                            }
+                        }
+                    }
+                },
+            });             
+        }
+
+        //############################ HANDLERS #################################
+
+        function setHandlers() {
+            $('#loadFile').click(() => {
+                let formData = new FormData();
+                let inputFile = $('#input_file')[0].files[0];
+                formData.append('input_file', inputFile);            
+
+                $.ajax({
+                    url: '/load',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    failure: (errMsg) => alert("Error loading file - ",errMsg),
+                    success: (data) => {
+                        if(data.success) {
+                            // console.log("Success - ",data.message);
+                            // console.log("Data - ",data.data);
+                            inputData = data.data;
+                            inputTable.loadData(inputData);
+
+                        } else {
+                            console.log("Error loading file - ",data.message);
+                        }
+                    }
+                })
             })
+
+            $('#resetZoom').click(() => {
+                window.inputChart.resetZoom();
+                window.outputChart.resetZoom();
+            })
+
+            $('#plotData').click(() => {
+                plotInputData(silent=false);
+            })
+            
+            $('#exportInputData').click(() => {
+                if(!dataFilled())
+                    return alert("Data invalid or empty");
+                inputExportPlugin.downloadFile('csv', {
+                    bom: false,  
+                    columnDelimiter: ',',
+                    columnHeaders: true,
+                    rowHeaders: false,
+                    exportHiddenColumns: true,
+                    exportHiddenRows: true,
+                    fileExtension: 'csv',
+                    filename: `LBC-input-CSV-[YYYY]-[MM]-[DD]`,
+                    mimeType: 'text/csv',
+                    rowDelimiter: '\r\n',
+                });
+            })
+
+            $('#exportOutputData').click(() => {
+                if(outputData.length <= 0)
+                    return alert("Data invalid or empty");
+                outputExportPlugin.downloadFile('csv', {
+                    bom: false,  
+                    columnDelimiter: ',',
+                    columnHeaders: true,
+                    rowHeaders: false,
+                    exportHiddenColumns: true,
+                    exportHiddenRows: true,
+                    fileExtension: 'csv',
+                    filename: `LBC-output-CSV-[YYYY]-[MM]-[DD]`,
+                    mimeType: 'text/csv',
+                    rowDelimiter: '\r\n',
+                });
+            })
+            
+            $('#getLBC').click(() => {
+                if(!dataFilled())
+                    return alert("Data invalid or empty");
+                $.ajax({
+                    type: 'POST',
+                    url: '/lbc',
+                    data: JSON.stringify({
+                        data: parseInputData(),
+                        start: parseFloat($('#start').val()), 
+                        end: parseFloat($('#end').val()), 
+                        order_poly: parseInt($('#order_poly').val()), 
+                        pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
+                        post_weight_factor: parseFloat($('#post_weight_factor').val()),
+                    }),
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    failure: (errMsg) => alert(errMsg),
+                    success: (data) => {
+                        if(!data.success)
+                            return alert(data.message);
+
+                        console.log("Got response from lbc - ",data)
+                        $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
+                        chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
+                        chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
+                        chartLogisticBaselineFit.data = data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]}));
+                        chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
+                        window.inputChart.update();
+                        window.outputChart.update();
+
+                        outputData = [];
+                        inputData.forEach((element, index) => {
+                            // console.log("pushing");
+                            outputData.push([
+                                inputData[index][0],
+                                inputData[index][1],
+                                data["corrected"][index][1],
+                                data["baseline_step_fit"][index][1],
+                                data["extracted_baseline"][index][1]
+                            ])
+                        });
+                        outputTable.loadData(outputData);
+                    }
+                })
+            })
+
+            $('#genSynthetic').click(() => {
+                $.ajax({
+                    type: 'POST',
+                    url: '/synthetic_data',
+                    data: JSON.stringify({
+                        lower_l : parseFloat($('#lower_l').val()), 
+                        upper_l : parseFloat($('#upper_l').val()), 
+                        no_dp : parseInt($('#no_dp').val()), 
+                        c0 : parseFloat($('#c0').val()), 
+                        k : parseFloat($('#k').val()), 
+                        a : JSON.parse($('#a').val()), 
+                        sigma : parseFloat($('#sigma').val())                
+                    }),
+                    contentType: "application/json",
+                    dataType: "json",
+                    failure: (errMsg) => alert(errMsg),
+                    success: (data) => {
+                        if(data.success) {
+                            console.log("Got synthetic data.");
+                            inputData = data.data
+                            inputTable.loadData(inputData);                       
+                        } else {
+                            console.log("Failure - ",data)
+                        }
+                    }            
+                })
+            })
+        }    
+
+        //########################### LOADING ###############################
+        $(window).on('load', () => {
+            initializeElements();
+            setHandlers();
         })
-        
-        
     </script>
     
 </body>

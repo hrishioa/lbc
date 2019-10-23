@@ -20,23 +20,19 @@ def get_file_extension(filename):
 
 @app.route('/load', methods=['POST'])
 def upload_file():
-    print("Loading file")
     # check if the post request has the file part
     if 'input_file' not in request.files:
-        print("Input file missing")
         return jsonify({
             "success": False,
             "message": "Input file missing"
         })
     file = request.files['input_file']
     if file.filename == '':
-        print("Input file missing")
         return jsonify({
             "success": False,
             "message": "Input file missing"
         })
     if (not file) or (not allowed_file(file.filename)):
-        print("Invalid file")
         return jsonify({
             "success": False,
             "message": "Invalid file"
@@ -44,7 +40,6 @@ def upload_file():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
-    print("File saved to %s" % filepath)
 
     # Process the file
     extension = get_file_extension(filename)
@@ -64,12 +59,13 @@ def upload_file():
             loaded = pd.read_excel(filepath, header=None).to_numpy().astype(float64)
         except Exception as e:
             # Try it without headers
-            print("Excel error - ",e)
             try:
                 loaded = pd.read_excel(filepath).to_numpy().astype(float64)
             except Exception as e2:
-                print("Excel error 2 - ", e2)
                 error_message = "Excel file is invalid or not fully numeric"
+
+    if os.path.exists(filepath):
+        os.remove(filepath)
 
     if loaded is None:
         return jsonify({
@@ -83,9 +79,6 @@ def upload_file():
             "data": loaded.tolist()
         })
 
-    # return redirect(url_for('uploaded_file',
-                            # filename=filename))
-
 @app.route('/synthetic_data', methods=['POST'])
 def synthetic_data():
     argument_headers = ["lower_l", "upper_l", "no_dp", "c0", "k", "a", "sigma"]
@@ -96,8 +89,6 @@ def synthetic_data():
         if header not in data_params:
             return jsonify({"success":False, "message":  "Missing parameter %s" % header})
         arguments[header] = data_params[header] if header in argument_not_float else float(data_params[header]) 
-
-    print("Arguments - %s" % arguments)
 
     data = LBC.synthetic_data(**arguments)
     return jsonify({"success":True, "data": data.tolist()})
@@ -119,8 +110,6 @@ def lbc():
                 arguments[header] = float(input_data[header])
         elif not header in argument_optional:
             return jsonify({"success": False, "message": "Required parameter %s missing." % header}) 
-
-    print("Arguments - %s" % arguments)
 
     result = LBC.elevator_function_fitting(**arguments)
 
