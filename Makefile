@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 run:
 	source ./venv/bin/activate; \
 	source ./variables.sh;
