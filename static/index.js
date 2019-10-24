@@ -10,10 +10,6 @@ let dataset = {
     loaded: false,
     ready: false,
     input: [],
-    corrected: [],
-    selectedBaseline: [],
-    logisticBaselineFit: [],
-    extractedBaseline: [],
     syntheticParameters: {},
     LBCParameters: {}
 };
@@ -28,6 +24,77 @@ function dataFilled() {
         return true;
     }
     return false;
+}
+
+let globaldata;
+
+function getLibraryLoader(id) {
+    return () => {
+        console.log(`Loading library dataset ${id}`);
+
+        $.ajax({
+            url: '/load_from_library',
+            type: 'POST',
+            data: JSON.stringify({id: id}),
+            contentType: "application/json",
+            dataType: "json",
+            failure: (errMsg) => alert("Error loading dataset - ",errMsg),
+            success: (data) => {
+                if(!data.success)
+                    return alert(data.message);
+
+                globaldata = data.data;
+
+                dataSet = JSON.parse(data.data.data);
+                for(let param in dataSet.LBCParameters) {
+                    $(`#${param}`).val(dataSet.LBCParameters[param])
+                }
+                for(let param in dataSet.syntheticParameters) {
+                    if(param === 'a')
+                        $(`#${param}`).val(JSON.stringify(dataSet.syntheticParameters[param]))    
+                    else
+                        $(`#${param}`).val(dataSet.syntheticParameters[param])
+                }
+
+                inputData = dataSet.input;
+                inputTable.loadData(inputData);
+
+                console.log("Loaded dataset. Getting LBC...");
+
+                getLBC();
+            }
+        })
+    };
+}
+
+function loadLibrary() {
+    console.log("Loading library...");
+
+    $.ajax({
+        url: '/get_library',
+        type: 'POST',
+        data: {},
+        failure: (errMsg) => alert("Error loading library - ",errMsg),
+        success: (data) => {
+            if(!data.success)
+                return alert(data.message);
+            $('#libraryTable tbody').html("");            
+            if(data.data && data.data.length > 0) {
+                data.data.map(row => {
+                    $('#libraryTable tbody').append(
+                        $('<tr>')
+                            .append($('<td>').text(row.name))
+                            .append($('<td>').text(row.owner))
+                            .append($('<td>').text(row.type))
+                            .append($('<td>').text(row.loads))
+                            .append($('<td>').text(row.created))
+                            .append($('<td>').append($('<button>').text('View').click(getLibraryLoader(row.id)))));
+                })
+            }
+
+            console.log("Library loaded.")
+        }
+    })
 }
 
 function parseInputData() {
@@ -53,6 +120,71 @@ function saveBase64AsFile(base64, fileName) {
     link.setAttribute("href", base64);
     link.setAttribute("download", fileName);
     link.click();
+}
+
+function getLBC() {
+    if(!dataFilled())
+        return alert("Data invalid or empty");
+    $.ajax({
+        type: 'POST',
+        url: '/lbc',
+        data: JSON.stringify({
+            data: parseInputData(),
+            start: parseFloat($('#start').val()), 
+            end: parseFloat($('#end').val()), 
+            order_poly: parseInt($('#order_poly').val()), 
+            pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
+            post_weight_factor: parseFloat($('#post_weight_factor').val()),
+        }),
+        contentType: 'application/json',
+        dataType: 'json',
+        failure: (errMsg) => alert(errMsg),
+        success: (data) => {
+            if(!data.success)
+                return alert(data.message);
+            
+            $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
+            chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
+            chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
+            chartLogisticBaselineFit.data = data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]}));
+            chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
+            window.inputChart.update();
+            window.outputChart.update();
+            
+            outputData = [];
+            inputData.forEach((element, index) => {
+                outputData.push([
+                    inputData[index][0],
+                    inputData[index][1],
+                    data["corrected"][index][1],
+                    data["baseline_step_fit"][index][1],
+                    data["extracted_baseline"][index][1]
+                ])
+            });
+            outputTable.loadData(outputData);
+        }
+    })
+}
+
+function markDatasetReady() {
+    dataset.input = inputData;
+    dataset.syntheticParameters = {
+        "lower_l": $('#lower_l').val(),
+        "upper_l": $('#upper_l').val(),
+        "no_dp": $('#no_dp').val(),
+        "c0": $('#c0').val(),
+        "k": $('#k').val(),
+        "a": JSON.parse($('#a').val()),
+        "sigma": $('#sigma').val(),
+    };
+    dataset.LBCParameters = {
+        start: parseFloat($('#start').val()), 
+        end: parseFloat($('#end').val()), 
+        order_poly: parseInt($('#order_poly').val()), 
+        pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
+        post_weight_factor: parseFloat($('#post_weight_factor').val())
+    }
+    dataset.ready = true;
 }
 
 function initializeElements() {
@@ -332,67 +464,9 @@ function setHandlers() {
     })
     
     $('#getLBC').click(() => {
-        if(!dataFilled())
-        return alert("Data invalid or empty");
-        $.ajax({
-            type: 'POST',
-            url: '/lbc',
-            data: JSON.stringify({
-                data: parseInputData(),
-                start: parseFloat($('#start').val()), 
-                end: parseFloat($('#end').val()), 
-                order_poly: parseInt($('#order_poly').val()), 
-                pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
-                post_weight_factor: parseFloat($('#post_weight_factor').val()),
-            }),
-            contentType: 'application/json',
-            dataType: 'json',
-            failure: (errMsg) => alert(errMsg),
-            success: (data) => {
-                if(!data.success)
-                    return alert(data.message);
-                
-                $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
-                chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
-                chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
-                chartLogisticBaselineFit.data = data["baseline_step_fit"].map(row => ({x:row[0],y:row[1]}));
-                chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
-                window.inputChart.update();
-                window.outputChart.update();
-                
-                outputData = [];
-                inputData.forEach((element, index) => {
-                    outputData.push([
-                        inputData[index][0],
-                        inputData[index][1],
-                        data["corrected"][index][1],
-                        data["baseline_step_fit"][index][1],
-                        data["extracted_baseline"][index][1]
-                    ])
-                });
-                outputTable.loadData(outputData);
-
-                dataset.input = inputData;
-                dataset.syntheticParameters = {
-                    "lower_l": $('#lower_l').val(),
-                    "upper_l": $('#upper_l').val(),
-                    "no_dp": $('#no_dp').val(),
-                    "c0": $('#c0').val(),
-                    "k": $('#k').val(),
-                    "a": JSON.parse($('#a').val()),
-                    "sigma": $('#sigma').val(),
-                };
-                dataset.LBCParameters = {
-                    start: parseFloat($('#start').val()), 
-                    end: parseFloat($('#end').val()), 
-                    order_poly: parseInt($('#order_poly').val()), 
-                    pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
-                    post_weight_factor: parseFloat($('#post_weight_factor').val())
-                }
-                dataset.ready = true;
-            }
-        })
-    })
+        getLBC();
+        markDatasetReady();
+    });
     
     $('#genSynthetic').click(() => {
         $.ajax({
@@ -426,4 +500,5 @@ function setHandlers() {
 $(window).on('load', () => {
     initializeElements();
     setHandlers();
+    loadLibrary();
 })

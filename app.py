@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy import Table, Column, String, Integer, MetaData, DateTime
 import json
 import datetime
+import logging
 
 UPLOAD_FOLDER = './'
 LIBRARY_TABLENAME = 'library'
@@ -70,20 +71,54 @@ def save_dataset():
         "message": "Testing"
     })
 
-@app.route('/get_library', methods=['GET', 'POST'])
+@app.route('/load_from_library', methods=['POST'])
+def load_dataset():
+    try:
+        data_params = request.get_json()
+        if 'id' not in data_params:
+            return jsonify({
+                "success": False,
+                "message": "Required parameter id is missing"
+            })
+
+        library, conn = get_library_table()
+        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.type]).where(library.columns.id==1).limit(1))    
+
+        if rowProxy.rowcount <= 0:
+            return jsonify({
+                "success": False,
+                "message": "Dataset does not exist"
+            })
+
+        return jsonify({
+            "success": True,
+            "data": dict(rowProxy.fetchone())
+        })
+    except Exception as e:
+        logging.exception("Error in load_from_library - %s" % e)
+        return jsonify({
+            "success": False,
+            "message": "Could not retrieve dataset"
+        })
+
+@app.route('/get_library', methods=['POST'])
 def get_library():
-    library, conn = get_library_table()
-    print("Keys in table - ",library.columns.keys())
+    try:
+        library, conn = get_library_table()
+        rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.type, library.columns.created]))
+        rows = []
+        for row in rowProxy:
+            rows.append(dict(row))
 
-    rowProxy = conn.execute(select([library.columns.name, library.columns.owner, library.columns.type, library.columns.created]))
-    rows = []
-    for row in rowProxy:
-        rows.append(dict(row))
-
-    return jsonify({
-        "success": True,
-        "data": rows
-    })
+        return jsonify({
+            "success": True,
+            "data": rows
+        })
+    except:
+        return jsonify({
+            "success": False,
+            "message": "Library fetching failed"
+        })
 
 @app.route('/loadfile', methods=['POST'])
 def upload_file():
