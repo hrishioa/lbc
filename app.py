@@ -107,7 +107,7 @@ def load_dataset():
         row = dict(rowProxy.fetchone())
 
         # Update number of loads
-        conn.execute(library.update().where(library.columns.id==row["id"]).values(loads=row["loads"]+1))
+        conn.execute(library.update().where(library.columns.id==row["id"]).values(loads=library.columns.loads+1))
 
         return jsonify({
             "success": True,
@@ -126,13 +126,44 @@ def load_dataset():
         except:
             pass
 
+@app.route('/like_dataset', methods=['POST'])
+def like_dataset():
+    try:
+        data_params = request.get_json()
+        if 'id' not in data_params:
+            return jsonify({
+                "success": False,
+                "message": "Required parameter id is missing"
+            })
+        
+
+        library, conn = get_library_table()
+        conn.execute(library.update().where(library.columns.id==data_params["id"]).values(liked=library.columns.liked+1))
+
+        return jsonify({
+            "success": True,
+            "message": "Like successfully added"
+        })
+    except:
+        logging.exception("Error in like_dataset")
+        return jsonify({
+            "success": False,
+            "message": "Unavailable"
+        })
+    finally:
+        try:
+            conn.close()
+            print("Closed connection")
+        except:
+            pass   
+
 @app.route('/get_library', methods=['POST'])
 def get_library():
     try:
         print("Getting library")
         library, conn = get_library_table()
         print("Got table")
-        rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.type, library.columns.created]))
+        rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.liked, library.columns.type, library.columns.created]))
         rows = []
         for row in rowProxy:
             rows.append(dict(row))

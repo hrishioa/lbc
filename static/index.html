@@ -10,6 +10,24 @@
 </head>
 
 <body style="margin: auto 10%">
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 15px;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #eee;
+        }
+        table tr:nth-child(odd) {
+            background-color: #fff;
+        }
+        table th {
+            color: white;
+            background-color: black;
+        }
+    </style>
     <!-- TODO: Create spinners for long xhrs -->
     <!-- TODO: Make the markers smaller -->
     <!-- TODO: Clear all plots when you click clear data -->
@@ -37,6 +55,7 @@
                 <th>Type</th>
                 <th>Loads</th>
                 <th>Created</th>
+                <th>Liked</th>
                 <th>View</th>
             </tr>
         </thead>

@@ -26,6 +26,25 @@ function dataFilled() {
     return false;
 }
 
+function getDatasetLiker(id) {
+    return () => {
+        $.ajax({
+            url: '/like_dataset',
+            type: 'POST',
+            data: JSON.stringify({id: id}),
+            contentType: "application/json",
+            dataType: "json",
+            failure: (errMsg) => toastr.error(`Error sending likes - ${errMsg}`),
+            success: (data) => {
+                if(!data.success)
+                    return toastr.error(`Error sending likes - ${data.message}`);
+
+                loadLibrary();
+            }
+        })
+    };    
+}
+
 function getLibraryLoader(id) {
     return () => {
         toastr.info("Loading dataset..");
@@ -55,9 +74,12 @@ function getLibraryLoader(id) {
                 inputData = dataSet.input;
                 inputTable.loadData(inputData);
 
+                loadLibrary();
+
                 toastr.success("Loaded dataset");
 
                 getLBC();
+                
             }
         })
     };
@@ -84,6 +106,7 @@ function loadLibrary() {
                             .append($('<td>').text(row.type))
                             .append($('<td>').text(row.loads))
                             .append($('<td>').text(row.created))
+                            .append($('<td>').text(`${row.liked} - `).append($('<button>').text('Like').click(getDatasetLiker(row.id))))
                             .append($('<td>').append($('<button>').text('View').click(getLibraryLoader(row.id)))));
                 })
             }
