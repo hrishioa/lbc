@@ -26,8 +26,6 @@ function dataFilled() {
     return false;
 }
 
-let globaldata;
-
 function getLibraryLoader(id) {
     return () => {
         toastr.info("Loading dataset...");
@@ -42,8 +40,6 @@ function getLibraryLoader(id) {
             success: (data) => {
                 if(!data.success)
                     return toastr.error(`Error loading dataset - ${data.message}`);
-
-                globaldata = data.data;
 
                 dataSet = JSON.parse(data.data.data);
                 for(let param in dataSet.LBCParameters) {
@@ -180,11 +176,11 @@ function markDatasetReady() {
         "sigma": $('#sigma').val(),
     };
     dataset.LBCParameters = {
-        start: parseFloat($('#start').val()), 
-        end: parseFloat($('#end').val()), 
-        order_poly: parseInt($('#order_poly').val()), 
-        pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
-        post_weight_factor: parseFloat($('#post_weight_factor').val())
+        start: $('#start').val(), 
+        end: $('#end').val(), 
+        order_poly: $('#order_poly').val(), 
+        pre_weight_factor: $('#pre_weight_factor').val(),
+        post_weight_factor: $('#post_weight_factor').val()
     }
     dataset.ready = true;
 }

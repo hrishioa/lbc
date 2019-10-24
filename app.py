@@ -28,7 +28,7 @@ def get_file_extension(filename):
 def get_library_table():
     if(os.environ.get('DATABASE_URL') == None):
         return print("No database url found in get library table")
-    db = create_engine(os.environ.get('DATABASE_URL'))
+    db = create_engine(os.environ.get('DATABASE_URL'), pool_size=2, max_overflow=2)
     library_table = None
     metadata = MetaData(db)
     conn = db.connect()
@@ -77,6 +77,14 @@ def save_dataset():
             "success": False,
             "message": "Invalid metadata, could not save"
         })
+    finally:
+        ## This is super hacky but so is python when it comes to this and I refuse to have a try block in here of all places
+        ## Jesus screw python
+        try:
+            conn.close()
+            print("Closed connection")
+        except:
+            pass
 
 @app.route('/load_from_library', methods=['POST'])
 def load_dataset():
@@ -89,7 +97,7 @@ def load_dataset():
             })
 
         library, conn = get_library_table()
-        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.type]).where(library.columns.id==1).limit(1))    
+        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.type]).where(library.columns.id==data_params["id"]).limit(1))    
 
         if rowProxy.rowcount <= 0:
             return jsonify({
@@ -107,6 +115,12 @@ def load_dataset():
             "success": False,
             "message": "Could not retrieve dataset"
         })
+    finally:
+        try:
+            conn.close()
+            print("Closed connection")
+        except:
+            pass
 
 @app.route('/get_library', methods=['POST'])
 def get_library():
@@ -127,6 +141,12 @@ def get_library():
             "success": False,
             "message": "Library fetching failed"
         })
+    finally:
+        try:
+            conn.close()
+            print("Closed connection")
+        except:
+            pass
 
 @app.route('/loadfile', methods=['POST'])
 def upload_file():
