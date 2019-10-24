@@ -28,7 +28,7 @@ function dataFilled() {
 
 function getLibraryLoader(id) {
     return () => {
-        toastr.info("Loading dataset...");
+        toastr.info("Loading dataset..");
 
         $.ajax({
             url: '/load_from_library',
