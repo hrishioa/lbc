@@ -85,8 +85,9 @@ function getLibraryLoader(id) {
     };
 }
 
-function loadLibrary() {
-    toastr.info("Loading library...");
+function loadLibrary(silent=true) {
+    if(!silent)
+        toastr.info("Loading library...");
 
     $.ajax({
         url: '/get_library',
@@ -111,7 +112,8 @@ function loadLibrary() {
                 })
             }
 
-            toastr.success("Library loaded.")
+            if(!silent)
+                toastr.success("Library loaded.")
         }
     })
 }
@@ -550,5 +552,5 @@ function setHandlers() {
 $(window).on('load', () => {
     initializeElements();
     setHandlers();
-    loadLibrary();
+    loadLibrary(silent=false);
 })
