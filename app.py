@@ -28,10 +28,11 @@ def get_file_extension(filename):
 def get_library_table():
     if(os.environ.get('DATABASE_URL') == None):
         return print("No database url found in get library table")
-    db = create_engine(os.environ.get('DATABASE_URL'), pool_size=2, max_overflow=2)
+    db = create_engine(os.environ.get('DATABASE_URL'), pool_size=5, max_overflow=5)
     library_table = None
     metadata = MetaData(db)
     conn = db.connect()
+    print("Connected")
     if not db.dialect.has_table(db, LIBRARY_TABLENAME):
         print("Table doesn't exist")
         library_table = Table(LIBRARY_TABLENAME, metadata,
@@ -98,7 +99,6 @@ def load_dataset():
 
         library, conn = get_library_table()
         rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.type]).where(library.columns.id==data_params["id"]).limit(1))    
-
         if rowProxy.rowcount <= 0:
             return jsonify({
                 "success": False,
@@ -125,7 +125,9 @@ def load_dataset():
 @app.route('/get_library', methods=['POST'])
 def get_library():
     try:
+        print("Getting library")
         library, conn = get_library_table()
+        print("Got table")
         rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.type, library.columns.created]))
         rows = []
         for row in rowProxy:
