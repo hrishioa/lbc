@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 import os
 import pandas as pd
 from sqlalchemy.sql import func
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, desc
 from sqlalchemy import Table, Column, String, Integer, MetaData, DateTime
 import json
 import datetime
@@ -163,7 +163,7 @@ def get_library():
         print("Getting library")
         library, conn = get_library_table()
         print("Got table")
-        rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.liked, library.columns.type, library.columns.created]))
+        rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.liked, library.columns.type, library.columns.created]).order_by(desc(library.columns.loads)))
         rows = []
         for row in rowProxy:
             rows.append(dict(row))
