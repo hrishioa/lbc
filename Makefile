@@ -1,5 +1,9 @@
 run:
 	source ./venv/bin/activate; \
-	export FLASK_APP=app.py; \
-	export FLASK_DEBUG=1; \
+	source ./variables.sh;
 	python3 -m flask run
+
+repl:
+	source ./venv/bin/activate; \
+	source ./variables.sh; \
+	python3
