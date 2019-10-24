@@ -30,7 +30,7 @@ let globaldata;
 
 function getLibraryLoader(id) {
     return () => {
-        console.log(`Loading library dataset ${id}`);
+        toastr.info("Loading dataset...");
 
         $.ajax({
             url: '/load_from_library',
@@ -38,10 +38,10 @@ function getLibraryLoader(id) {
             data: JSON.stringify({id: id}),
             contentType: "application/json",
             dataType: "json",
-            failure: (errMsg) => alert("Error loading dataset - ",errMsg),
+            failure: (errMsg) => toastr.error(`Error loading dataset - ${errMsg}`),
             success: (data) => {
                 if(!data.success)
-                    return alert(data.message);
+                    return toastr.error(`Error loading dataset - ${data.message}`);
 
                 globaldata = data.data;
 
@@ -59,7 +59,7 @@ function getLibraryLoader(id) {
                 inputData = dataSet.input;
                 inputTable.loadData(inputData);
 
-                console.log("Loaded dataset. Getting LBC...");
+                toastr.success("Loaded dataset");
 
                 getLBC();
             }
@@ -68,16 +68,16 @@ function getLibraryLoader(id) {
 }
 
 function loadLibrary() {
-    console.log("Loading library...");
+    toastr.info("Loading library...");
 
     $.ajax({
         url: '/get_library',
         type: 'POST',
         data: {},
-        failure: (errMsg) => alert("Error loading library - ",errMsg),
+        failure: (errMsg) => toastr.error(`Error loading library - ${errMsg}`),
         success: (data) => {
             if(!data.success)
-                return alert(data.message);
+                return toastr.error(`Error loading library - ${data.message}`);
             $('#libraryTable tbody').html("");            
             if(data.data && data.data.length > 0) {
                 data.data.map(row => {
@@ -92,7 +92,7 @@ function loadLibrary() {
                 })
             }
 
-            console.log("Library loaded.")
+            toastr.success("Library loaded.")
         }
     })
 }
@@ -105,9 +105,9 @@ function parseInputData() {
 function plotInputData(silent=true) {
     if(!dataFilled()) {
         if(silent)
-        return;
+            return;
         else
-        return alert("Input data is empty or invalid");
+            return toastr.error("Input data is empty or invalid");
     }
     
     chartInputDataset.data = parseInputData().map(row => ({x:row[0],y:row[1]}));
@@ -124,7 +124,7 @@ function saveBase64AsFile(base64, fileName) {
 
 function getLBC() {
     if(!dataFilled())
-        return alert("Data invalid or empty");
+        return toastr.error("Data invalid or empty");
     $.ajax({
         type: 'POST',
         url: '/lbc',
@@ -138,10 +138,10 @@ function getLBC() {
         }),
         contentType: 'application/json',
         dataType: 'json',
-        failure: (errMsg) => alert(errMsg),
+        failure: (errMsg) => toastr.error(`Error computing LBC - ${errMsg}`),
         success: (data) => {
             if(!data.success)
-                return alert(data.message);
+                return toastr.error(`Error computing LBC - ${data.message}`);
             
             $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
             chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
@@ -162,6 +162,8 @@ function getLBC() {
                 ])
             });
             outputTable.loadData(outputData);
+
+            toastr.success("LBC Complete");
         }
     })
 }
@@ -199,6 +201,24 @@ function initializeElements() {
     };
     color = Chart.helpers.color;
     
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": true,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "4000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    }
+
     chartInputDataset = {
         label: 'Data',
         borderColor: window.chartColors.red,
@@ -369,14 +389,14 @@ function setHandlers() {
             data: formData,
             contentType: false,
             processData: false,
-            failure: (errMsg) => alert("Error loading file - ",errMsg),
+            failure: (errMsg) => toastr.error(`Error loading file - ${errMsg}`),
             success: (data) => {
                 if(data.success) {
                     inputData = data.data;
                     inputTable.loadData(inputData);
-                    
+                    toastr.success('Data successfully loaded')
                 } else {
-                    console.log("Error loading file - ",data.message);
+                    toastr.error(`Error loading file - ${data.message}`);
                 }
             }
         })
@@ -384,7 +404,7 @@ function setHandlers() {
 
     $('#saveToLibrary').click(() => {
         if(!dataset.ready)
-            return alert("Please run a successful Baseline Correction to save.");
+            return toastr.error("Please run a successful Baseline Correction to save.");
         // TODO: Add input validation since this goes into a database
 
         $.ajax({
@@ -398,11 +418,11 @@ function setHandlers() {
             }),
             contentType: 'application/json',
             dataType: 'json',
-            failure: (errMsg) => alert(errMsg),
+            failure: (errMsg) => toastr.error(`Error saving to library - ${errMsg}`),
             success: (data) => {
                 if(!data.success)
-                    return alert(data.message);
-                console.log("Save success - ",data);
+                    return toastr.error(`Error saving to library - ${data.message}`);
+                toastr.success("Save success - ",data);
             }
         })
     });
@@ -431,7 +451,7 @@ function setHandlers() {
     
     $('#exportInputData').click(() => {
         if(!dataFilled())
-        return alert("Data invalid or empty");
+            return toastr.error("Data invalid or empty");
         inputExportPlugin.downloadFile('csv', {
             bom: false,  
             columnDelimiter: ',',
@@ -448,7 +468,7 @@ function setHandlers() {
     
     $('#exportOutputData').click(() => {
         if(outputData.length <= 0)
-        return alert("Data invalid or empty");
+            return toastr.error("Data invalid or empty");
         outputExportPlugin.downloadFile('csv', {
             bom: false,  
             columnDelimiter: ',',
@@ -483,13 +503,14 @@ function setHandlers() {
             }),
             contentType: "application/json",
             dataType: "json",
-            failure: (errMsg) => alert(errMsg),
+            failure: (errMsg) => toastr.error(`Error generating data - ${errMsg}`),
             success: (data) => {
                 if(data.success) {
                     inputData = data.data
                     inputTable.loadData(inputData);                       
+                    toastr.success('Synthetic data generated')
                 } else {
-                    alert(data.message);
+                    toastr.error(`Error generating synthetic data - ${data.message}`);
                 }
             }            
         })
