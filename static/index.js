@@ -422,7 +422,8 @@ function setHandlers() {
             success: (data) => {
                 if(!data.success)
                     return toastr.error(`Error saving to library - ${data.message}`);
-                toastr.success("Save success - ",data);
+                toastr.success("Saved successfully");
+                loadLibrary();
             }
         })
     });
