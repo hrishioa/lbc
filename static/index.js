@@ -441,9 +441,18 @@ function setHandlers() {
         plotInputData(silent=false);
     })
     
-    $('#clearInputData').click(() => {
+    $('#clearData').click(() => {
         inputData = [['','']];
         inputTable.loadData(inputData);
+        outputData = [];
+        outputTable.loadData(outputData);
+        chartInputDataset.data = [];
+        chartCorrectedData.data = [];
+        chartSelectedBaseline.data = [];
+        chartLogisticBaselineFit.data = [];
+        chartExtractedBaseline.data = [];
+        window.inputChart.update();
+        window.outputChart.update();
     })
     
     $('#exportInputData').click(() => {

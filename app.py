@@ -98,16 +98,20 @@ def load_dataset():
             })
 
         library, conn = get_library_table()
-        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.type]).where(library.columns.id==data_params["id"]).limit(1))    
+        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.loads, library.columns.type]).where(library.columns.id==data_params["id"]).limit(1))    
         if rowProxy.rowcount <= 0:
             return jsonify({
                 "success": False,
                 "message": "Dataset does not exist"
             })
+        row = dict(rowProxy.fetchone())
+
+        # Update number of loads
+        conn.execute(library.update().where(library.columns.id==row["id"]).values(loads=row["loads"]+1))
 
         return jsonify({
             "success": True,
-            "data": dict(rowProxy.fetchone())
+            "data": row
         })
     except Exception as e:
         logging.exception("Error in load_from_library - %s" % e)
