@@ -9,7 +9,7 @@
 </head>
 
 <body style="margin: auto 10%">
-    
+    <!-- TODO: Create spinners for long xhrs -->
     <h1>Schnei de winder Correction</h1>
     <div>
         <canvas id="inputChart" width="400" height="400"></canvas>
@@ -24,7 +24,13 @@
         <button id="downloadChart">Download Charts</button>
     </div>
     <br><br>
-    
+
+    <h1>Library</h1>
+    Dataset Title: <input type="text" id="libraryTitle" value="My Dataset"><br>
+    Author Name: <input type="text" id="libraryOwner" value="Me"><br>
+    Dataset Type: <input type="text" id="libraryType" value="Synthetic"><br>
+    <button id="saveToLibrary">Save to Library</button>
+    <br><br>
     <h1>Synthetic Data</h1>
     Lower Limit: <input type="number" id="lower_l" value="-2.0">    <br>
     Upper Limit: <input type="number" id="upper_l" value="4.0">    <br>

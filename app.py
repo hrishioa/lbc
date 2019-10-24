@@ -4,8 +4,14 @@ import LBC
 from werkzeug.utils import secure_filename
 import os
 import pandas as pd
+from sqlalchemy.sql import func
+from sqlalchemy import create_engine, select
+from sqlalchemy import Table, Column, String, Integer, MetaData, DateTime
+import json
+import datetime
 
 UPLOAD_FOLDER = './'
+LIBRARY_TABLENAME = 'library'
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -18,7 +24,68 @@ def allowed_file(filename):
 def get_file_extension(filename):
     return filename.rsplit('.', 1)[1].lower()
 
-@app.route('/load', methods=['POST'])
+def get_library_table():
+    if(os.environ.get('DATABASE_URL') == None):
+        return print("No database url found in get library table")
+    db = create_engine(os.environ.get('DATABASE_URL'))
+    library_table = None
+    metadata = MetaData(db)
+    conn = db.connect()
+    if not db.dialect.has_table(db, LIBRARY_TABLENAME):
+        print("Table doesn't exist")
+        library_table = Table(LIBRARY_TABLENAME, metadata,
+            Column('id', Integer, primary_key=True, autoincrement=True),
+            Column('name', String, nullable=False),
+            Column('owner', String, nullable=False),
+            Column('type', String, nullable=False),
+            Column('loads', Integer, default=0),
+            Column('liked', Integer, default=0),
+            Column('created', DateTime, server_default=func.now()),
+            Column('last_modified', DateTime, server_default=func.now(), onupdate=func.now()),
+            Column('data', String))
+        library_table.create()
+        print("Table created")
+    else:
+        library_table = Table(LIBRARY_TABLENAME, metadata, autoload=True, autoload_with=db)
+        print("Table exists")
+    return library_table, conn
+
+@app.route('/save_to_library', methods=['POST'])
+def save_dataset():
+    data_params = request.get_json()
+    # TODO: Check that all the values are there
+
+    library, conn = get_library_table()
+    insert_statement = library.insert().values(
+        name=data_params["name"], 
+        owner=data_params["owner"],
+        type=data_params["type"],
+        loads=0,
+        liked=0,
+        data=json.dumps(data_params["data"]))
+    conn.execute(insert_statement)
+    
+    return jsonify({
+        "success": True,
+        "message": "Testing"
+    })
+
+@app.route('/get_library', methods=['GET', 'POST'])
+def get_library():
+    library, conn = get_library_table()
+    print("Keys in table - ",library.columns.keys())
+
+    rowProxy = conn.execute(select([library.columns.name, library.columns.owner, library.columns.type, library.columns.created]))
+    rows = []
+    for row in rowProxy:
+        rows.append(dict(row))
+
+    return jsonify({
+        "success": True,
+        "data": rows
+    })
+
+@app.route('/loadfile', methods=['POST'])
 def upload_file():
     # check if the post request has the file part
     if 'input_file' not in request.files:

@@ -6,6 +6,17 @@ let outputTableContainer = document.getElementById('outputSpreadsheet');
 let inputTableContainer = document.getElementById('inputSpreadsheet');
 let inputData = [['','']];
 let outputData = [];
+let dataset = {
+    loaded: false,
+    ready: false,
+    input: [],
+    corrected: [],
+    selectedBaseline: [],
+    logisticBaselineFit: [],
+    extractedBaseline: [],
+    syntheticParameters: {},
+    LBCParameters: {}
+};
 let inputCtx = document.getElementById('inputChart').getContext('2d');
 let outputCtx = document.getElementById('outputChart').getContext('2d');
 
@@ -221,7 +232,7 @@ function setHandlers() {
         formData.append('input_file', inputFile);            
         
         $.ajax({
-            url: '/load',
+            url: '/loadfile',
             type: 'POST',
             data: formData,
             contentType: false,
@@ -237,7 +248,32 @@ function setHandlers() {
                 }
             }
         })
-    })
+    });
+
+    $('#saveToLibrary').click(() => {
+        if(!dataset.ready)
+            return alert("Please run a successful Baseline Correction to save.");
+        // TODO: Add input validation since this goes into a database
+
+        $.ajax({
+            url: '/save_to_library',
+            type: 'POST',
+            data: JSON.stringify({
+                name: $('#libraryTitle').val(),
+                owner: $('#libraryOwner').val(),
+                type: $('#libraryType').val(),
+                data: dataset    
+            }),
+            contentType: 'application/json',
+            dataType: 'json',
+            failure: (errMsg) => alert(errMsg),
+            success: (data) => {
+                if(!data.success)
+                    return alert(data.message);
+                console.log("Save success - ",data);
+            }
+        })
+    });
     
     $('#downloadChart').click(() => {
         let inputChartBase64 = window.inputChart.toBase64Image();
@@ -245,11 +281,6 @@ function setHandlers() {
         
         saveBase64AsFile(inputChartBase64, `LBC-in-${new Date()}.png`);
         saveBase64AsFile(outputChartBase64, `LBC-out-${new Date()}.png`);
-
-        // let image = new Image();
-        // image.src = inputChartBase64;
-        // let w = window.open('');
-        // w.document.write(image.outerHTML);
     });
     
     $('#resetZoom').click(() => {
@@ -331,7 +362,6 @@ function setHandlers() {
                 
                 outputData = [];
                 inputData.forEach((element, index) => {
-                    // console.log("pushing");
                     outputData.push([
                         inputData[index][0],
                         inputData[index][1],
@@ -341,6 +371,25 @@ function setHandlers() {
                     ])
                 });
                 outputTable.loadData(outputData);
+
+                dataset.input = inputData;
+                dataset.syntheticParameters = {
+                    "lower_l": $('#lower_l').val(),
+                    "upper_l": $('#upper_l').val(),
+                    "no_dp": $('#no_dp').val(),
+                    "c0": $('#c0').val(),
+                    "k": $('#k').val(),
+                    "a": JSON.parse($('#a').val()),
+                    "sigma": $('#sigma').val(),
+                };
+                dataset.LBCParameters = {
+                    start: parseFloat($('#start').val()), 
+                    end: parseFloat($('#end').val()), 
+                    order_poly: parseInt($('#order_poly').val()), 
+                    pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
+                    post_weight_factor: parseFloat($('#post_weight_factor').val())
+                }
+                dataset.ready = true;
             }
         })
     })
