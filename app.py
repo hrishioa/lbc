@@ -1,4 +1,4 @@
-from flask import Flask, current_app, jsonify, request
+from flask import Flask, current_app, jsonify, request, send_from_directory, abort
 from numpy import array, float64
 import LBC
 from werkzeug.utils import secure_filename
@@ -12,6 +12,7 @@ import datetime
 import logging
 
 UPLOAD_FOLDER = './'
+STATIC_FOLDER = './static'
 LIBRARY_TABLENAME = 'library'
 
 app = Flask(__name__)
@@ -32,9 +33,7 @@ def get_library_table():
     library_table = None
     metadata = MetaData(db)
     conn = db.connect()
-    print("Connected")
     if not db.dialect.has_table(db, LIBRARY_TABLENAME):
-        print("Table doesn't exist")
         library_table = Table(LIBRARY_TABLENAME, metadata,
             Column('id', Integer, primary_key=True, autoincrement=True),
             Column('name', String, nullable=False),
@@ -46,11 +45,17 @@ def get_library_table():
             Column('last_modified', DateTime, server_default=func.now(), onupdate=func.now()),
             Column('data', String))
         library_table.create()
-        print("Table created")
     else:
         library_table = Table(LIBRARY_TABLENAME, metadata, autoload=True, autoload_with=db)
-        print("Table exists")
     return library_table, conn
+
+@app.route('/static/<path:path>', methods=['GET'])
+def server_static(path):
+    if not os.path.isfile(os.path.join(STATIC_FOLDER, path)):
+        return abort(404)
+ 
+    return send_from_directory(STATIC_FOLDER, path)
+
 
 @app.route('/save_to_library', methods=['POST'])
 def save_dataset():
@@ -83,7 +88,6 @@ def save_dataset():
         ## Jesus screw python
         try:
             conn.close()
-            print("Closed connection")
         except:
             pass
 
@@ -122,7 +126,6 @@ def load_dataset():
     finally:
         try:
             conn.close()
-            print("Closed connection")
         except:
             pass
 
@@ -153,16 +156,13 @@ def like_dataset():
     finally:
         try:
             conn.close()
-            print("Closed connection")
         except:
             pass   
 
 @app.route('/get_library', methods=['POST'])
 def get_library():
     try:
-        print("Getting library")
         library, conn = get_library_table()
-        print("Got table")
         rowProxy = conn.execute(select([library.columns.name, library.columns.id, library.columns.loads, library.columns.owner, library.columns.liked, library.columns.type, library.columns.created]).order_by(desc(library.columns.loads)))
         rows = []
         for row in rowProxy:
@@ -181,7 +181,6 @@ def get_library():
     finally:
         try:
             conn.close()
-            print("Closed connection")
         except:
             pass
 

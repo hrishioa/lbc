@@ -27,7 +27,8 @@ function dataFilled() {
 }
 
 function getDatasetLiker(id) {
-    return () => {
+    return (event) => {
+        event.stopPropagation();
         $.ajax({
             url: '/like_dataset',
             type: 'POST',
@@ -79,7 +80,8 @@ function getLibraryLoader(id) {
                 toastr.success("Loaded dataset");
 
                 getLBC();
-                
+    
+                $('#modalShowLibrary').modal('hide');
             }
         })
     };
@@ -101,14 +103,24 @@ function loadLibrary(silent=true) {
             if(data.data && data.data.length > 0) {
                 data.data.map(row => {
                     $('#libraryTable tbody').append(
-                        $('<tr>')
-                            .append($('<td>').text(row.name))
+                        $('<tr>').click(getLibraryLoader(row.id))
+                            .append($('<td>').append($('<button>')
+                                .prop('type', 'button')
+                                .addClass('btn btn-primary btn-like')
+                                .text('Like ')
+                                .append($('<span>').addClass('badge badge-light').html(row.liked))
+                                .click(getDatasetLiker(row.id))))
+                            .append($('<td>')
+                                .append($('<div>')
+                                    .css({"overflow":"auto"})
+                                    .text(row.name)))
                             .append($('<td>').text(row.owner))
                             .append($('<td>').text(row.type))
+                            // .append($('<td>').append($('<button>').addClass('btn').addClass('btn-primary').text('View').click(getLibraryLoader(row.id))))
                             .append($('<td>').text(row.loads))
-                            .append($('<td>').text(row.created))
-                            .append($('<td>').text(`${row.liked} - `).append($('<button>').text('Like').click(getDatasetLiker(row.id))))
-                            .append($('<td>').append($('<button>').text('View').click(getLibraryLoader(row.id)))));
+                            // .append($('<td>').text(row.created))
+                            // .append($('<td>').text(`${row.liked} - `).append($('<button>').text('Like').click(getDatasetLiker(row.id)))))
+                    );
                 })
             }
 
@@ -210,6 +222,31 @@ function markDatasetReady() {
     dataset.ready = true;
 }
 
+function loadInputFile() {
+    let formData = new FormData();
+    let inputFile = $('#input_file')[0].files[0];
+    formData.append('input_file', inputFile);            
+    
+    $.ajax({
+        url: '/loadfile',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        failure: (errMsg) => toastr.error(`Error loading file - ${errMsg}`),
+        success: (data) => {
+            if(data.success) {
+                inputData = data.data;
+                inputTable.loadData(inputData);
+                toastr.success('Data successfully loaded');
+                plotInputData(silent=false);
+            } else {
+                toastr.error(`Error loading file - ${data.message}`);
+            }
+        }
+    })
+}
+
 function initializeElements() {
     window.chartColors = {
         red: 'rgba(255, 99, 132, 0.5)',
@@ -244,22 +281,23 @@ function initializeElements() {
         label: 'Data',
         borderColor: window.chartColors.red,
         backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
-        data: []
+        data: [],
+        radius: 2
     };
     chartCorrectedData = {
         label: 'Corrected Data',
         borderColor: window.chartColors.blue,
         backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
-        data: []
+        data: [],
+        radius: 1
     };
     chartSelectedBaseline = {
         label: 'Selected Baseline Data Points',
         borderColor: window.chartColors.green,
         backgroundColor: color(window.chartColors.green).alpha(0.2).rgbString(),
         data: [],
-        radius: 5,
-        // pointStyle: 'cross',
-        borderWidth: 2
+        radius: 2,
+        borderWidth: 1
     };
     chartLogisticBaselineFit = {
         label: 'Logistic Baseline Fit',
@@ -400,28 +438,16 @@ function initializeElements() {
 
 function setHandlers() {
     $('#loadFile').click(() => {
-        let formData = new FormData();
-        let inputFile = $('#input_file')[0].files[0];
-        formData.append('input_file', inputFile);            
-        
-        $.ajax({
-            url: '/loadfile',
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-            failure: (errMsg) => toastr.error(`Error loading file - ${errMsg}`),
-            success: (data) => {
-                if(data.success) {
-                    inputData = data.data;
-                    inputTable.loadData(inputData);
-                    toastr.success('Data successfully loaded')
-                } else {
-                    toastr.error(`Error loading file - ${data.message}`);
-                }
-            }
-        })
+        loadInputFile();
     });
+
+    $('#input_file').on('change', () => {
+        if(!$('#input_file')[0].files[0] || !$('#input_file')[0].files[0].name)
+            return toastr.error('File not found.');
+        console.log(`Loading filename ${$('#input_file')[0].files[0].name}`);
+        $('#input_file_label').text($('#input_file')[0].files[0].name);
+        loadInputFile();
+    })
 
     $('#saveToLibrary').click(() => {
         if(!dataset.ready)
@@ -462,10 +488,6 @@ function setHandlers() {
         window.outputChart.resetZoom();
     })
     
-    $('#plotData').click(() => {
-        plotInputData(silent=false);
-    })
-    
     $('#clearData').click(() => {
         inputData = [['','']];
         inputTable.loadData(inputData);
@@ -479,8 +501,13 @@ function setHandlers() {
         window.inputChart.update();
         window.outputChart.update();
     })
-    
-    $('#exportInputData').click(() => {
+
+    $('#exportData').click(() => {
+        exportInputToCSV();
+        exportOutputToCSV();
+    });
+
+    function exportInputToCSV() {
         if(!dataFilled())
             return toastr.error("Data invalid or empty");
         inputExportPlugin.downloadFile('csv', {
@@ -495,9 +522,9 @@ function setHandlers() {
             mimeType: 'text/csv',
             rowDelimiter: '\r\n',
         });
-    })
-    
-    $('#exportOutputData').click(() => {
+    }
+
+    function exportOutputToCSV() {
         if(outputData.length <= 0)
             return toastr.error("Data invalid or empty");
         outputExportPlugin.downloadFile('csv', {
@@ -512,8 +539,8 @@ function setHandlers() {
             mimeType: 'text/csv',
             rowDelimiter: '\r\n',
         });
-    })
-    
+    }
+        
     $('#getLBC').click(() => {
         getLBC();
         markDatasetReady();
