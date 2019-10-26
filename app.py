@@ -29,7 +29,7 @@ def get_file_extension(filename):
 def get_library_table():
     if(os.environ.get('DATABASE_URL') == None):
         return print("No database url found in get library table")
-    db = create_engine(os.environ.get('DATABASE_URL'), pool_size=5, max_overflow=5)
+    db = create_engine(os.environ.get('DATABASE_URL'), pool_size=10, max_overflow=10)
     library_table = None
     metadata = MetaData(db)
     conn = db.connect()
