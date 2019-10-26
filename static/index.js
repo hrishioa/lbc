@@ -359,6 +359,9 @@ function initializeElements() {
             ]
         },
         options: {
+            legend: {
+                position: 'bottom'
+            },
             tooltips: {
                 callbacks: {
                     label: (tooltipItem) => {
@@ -400,6 +403,9 @@ function initializeElements() {
             ]
         },
         options: {
+            legend: {
+                position: 'bottom'
+            },
             tooltips: {
                 callbacks: {
                     label: (tooltipItem) => {
