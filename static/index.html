@@ -17,10 +17,14 @@
             font-size: 0.75em;
         }
 
-        .table td th {
-            padding: 0.5em;
+        .table td, .table th {
             vertical-align: middle;
         }
+
+        /* .table td th {
+            padding: 0.5em;
+            vertical-align: middle !important;
+        } */
 
         .table tr {
             line-height: 20px;
@@ -35,7 +39,7 @@
         }
 
         .btn-like {
-            width: 150%;
+            /* width: 150%; */
         }
     </style>
     <!-- TODO: Add Google analytics and maybe a total number of uses? - do this after full hosting -->
@@ -62,10 +66,10 @@
                     </p>              
                     
                     <div class="table-responsive">
-                        <table id="libraryTable" class="table table-striped table-hover">
+                        <table id="libraryTable" class="table table-sm table-striped table-hover">
                             <colgroup>
-                                <col span="1" style="width: 10%;">
-                                <col span="1" style="width: 50%;">
+                                <col span="1" style="width: 15%;">
+                                <col span="1" style="width: 45%;">
                                 <col span="1" style="width: 15%;">
                                 <col span="1" style="width: 15%;">
                                 <col span="1" style="width: 10%;">

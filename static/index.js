@@ -39,7 +39,7 @@ function getDatasetLiker(id) {
             success: (data) => {
                 if(!data.success)
                     return toastr.error(`Error sending likes - ${data.message}`);
-
+                toastr.success("Thanks!!");
                 loadLibrary();
             }
         })
