@@ -9,6 +9,17 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/assets/css/theme.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-69264120-6"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-69264120-6');
+    </script>
+
 </head>
 
 <body>
@@ -45,7 +56,9 @@
     <!-- TODO: Add Google analytics and maybe a total number of uses? - do this after full hosting -->
     <!-- TODO: Add input validation -->
     <!-- TODO: Adjust spacing -->
-
+    <!-- TODO: Make synthetic data less prominent, maybe grey it out -->
+    <!-- TODO: Add SEO -->
+    
     <div class="modal fade" id="modalShowLibrary" tabindex="-1" role="dialog" aria-labelledby="modalLibraryTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered table-dialog" role="document">
             <div class="modal-content">
@@ -330,7 +343,7 @@
         <div class="row py-8 px-5">
             <div class="col col-md-4">
                 <h2>Input Data</h2>
-                <p>(paste X,Y into spreadsheet)</p>
+                <p>(paste directly from Excel into spreadsheet)</p>
                 <div id="inputSpreadsheet"></div>
             </div>
             <div class="col col-md-8 mt-5 mt-md-0" id="outputSpreadsheetCol">
