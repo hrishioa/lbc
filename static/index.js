@@ -15,6 +15,7 @@ let dataset = {
 };
 let inputCtx = document.getElementById('inputChart').getContext('2d');
 let outputCtx = document.getElementById('outputChart').getContext('2d');
+let zoomEnabled = true;
 
 //############################# FUNCTIONS #####################################
 function dataFilled() {
@@ -418,7 +419,7 @@ function initializeElements() {
                 display: true,
                 text: 'Corrected'
             },
-            plugins: {
+            plugins: zoomEnabled ? {
                 zoom: {
                     zoom: {
                         enabled: true,
@@ -435,9 +436,17 @@ function initializeElements() {
                         speed: 0.1,
                     }
                 }
-            }
+            } : {}
         },
     });             
+}
+
+function checkEnableZoom() {
+    if (/Mobi/.test(navigator.userAgent)) {
+        toastr.info("Disabling zoom for mobile - please use the desktop version for more features!");
+        zoomEnabled = false;
+        $('#resetZoom').hide();
+    }
 }
 
 //############################ HANDLERS #################################
@@ -583,6 +592,7 @@ function setHandlers() {
 
 //########################### LOADING ###############################
 $(window).on('load', () => {
+    checkEnableZoom();
     initializeElements();
     setHandlers();
     loadLibrary(silent=false);
