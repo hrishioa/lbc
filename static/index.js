@@ -44,7 +44,7 @@ function getDatasetLiker(id) {
                 loadLibrary();
             }
         })
-    };    
+    };
 }
 
 function getLibraryLoader(id) {
@@ -68,7 +68,7 @@ function getLibraryLoader(id) {
                 }
                 for(let param in dataSet.syntheticParameters) {
                     if(param === 'a')
-                        $(`#${param}`).val(JSON.stringify(dataSet.syntheticParameters[param]))    
+                        $(`#${param}`).val(JSON.stringify(dataSet.syntheticParameters[param]))
                     else
                         $(`#${param}`).val(dataSet.syntheticParameters[param])
                 }
@@ -81,7 +81,7 @@ function getLibraryLoader(id) {
                 toastr.success("Loaded dataset");
 
                 getLBC();
-    
+
                 $('#modalShowLibrary').modal('hide');
             }
         })
@@ -100,7 +100,7 @@ function loadLibrary(silent=true) {
         success: (data) => {
             if(!data.success)
                 return toastr.error(`Error loading library - ${data.message}`);
-            $('#libraryTable tbody').html("");            
+            $('#libraryTable tbody').html("");
             if(data.data && data.data.length > 0) {
                 data.data.map(row => {
                     $('#libraryTable tbody').append(
@@ -133,19 +133,20 @@ function loadLibrary(silent=true) {
 
 function parseInputData() {
     // Jesus fuck localization
-    return inputData.map(insides=>insides.map(val => parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))))            
+    return inputData.map(insides=>insides.map(val => parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))))
 }
 
 function plotInputData(silent=true) {
+    console.log("plotting input data");
     if(!dataFilled()) {
         if(silent)
             return;
         else
             return toastr.error("Input data is empty or invalid");
     }
-    
+
     chartInputDataset.data = parseInputData().map(row => ({x:row[0],y:row[1]}));
-    window.inputChart.update();     
+    window.inputChart.update();
 }
 
 function saveBase64AsFile(base64, fileName) {
@@ -164,9 +165,9 @@ function getLBC() {
         url: '/lbc',
         data: JSON.stringify({
             data: parseInputData(),
-            start: parseFloat($('#start').val()), 
-            end: parseFloat($('#end').val()), 
-            order_poly: parseInt($('#order_poly').val()), 
+            start: parseFloat($('#start').val()),
+            end: parseFloat($('#end').val()),
+            order_poly: parseInt($('#order_poly').val()),
             pre_weight_factor: parseFloat($('#pre_weight_factor').val()),
             post_weight_factor: parseFloat($('#post_weight_factor').val()),
         }),
@@ -176,7 +177,7 @@ function getLBC() {
         success: (data) => {
             if(!data.success)
                 return toastr.error(`Error computing LBC - ${data.message}`);
-            
+
             $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
             chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
             chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
@@ -184,7 +185,7 @@ function getLBC() {
             chartExtractedBaseline.data = data["extracted_baseline"].map(row => ({x:row[0],y:row[1]}));
             window.inputChart.update();
             window.outputChart.update();
-            
+
             outputData = [];
             inputData.forEach((element, index) => {
                 outputData.push([
@@ -214,9 +215,9 @@ function markDatasetReady() {
         "sigma": $('#sigma').val(),
     };
     dataset.LBCParameters = {
-        start: $('#start').val(), 
-        end: $('#end').val(), 
-        order_poly: $('#order_poly').val(), 
+        start: $('#start').val(),
+        end: $('#end').val(),
+        order_poly: $('#order_poly').val(),
         pre_weight_factor: $('#pre_weight_factor').val(),
         post_weight_factor: $('#post_weight_factor').val()
     }
@@ -226,8 +227,8 @@ function markDatasetReady() {
 function loadInputFile() {
     let formData = new FormData();
     let inputFile = $('#input_file')[0].files[0];
-    formData.append('input_file', inputFile);            
-    
+    formData.append('input_file', inputFile);
+
     $.ajax({
         url: '/loadfile',
         type: 'POST',
@@ -248,6 +249,11 @@ function loadInputFile() {
     })
 }
 
+function inputTableChangeHandler() {
+    console.log("Changes happened");
+    plotInputData(silent=true);
+}
+
 function initializeElements() {
     window.chartColors = {
         red: 'rgba(255, 99, 132, 0.5)',
@@ -259,7 +265,7 @@ function initializeElements() {
         grey: 'rgb(201, 203, 207)'
     };
     color = Chart.helpers.color;
-    
+
     toastr.options = {
         "closeButton": true,
         "debug": false,
@@ -309,7 +315,7 @@ function initializeElements() {
         fill: false,
         pointRadius: 0
     };
-    chartExtractedBaseline = {            
+    chartExtractedBaseline = {
         label: 'Extracted Baseline Function',
         borderColor: window.chartColors.purple,
         backgroundColor: color(window.chartColors.purple).alpha(0.2).rgbString(),
@@ -318,7 +324,7 @@ function initializeElements() {
         fill: false,
         pointRadius: 0
     };
-    
+
     outputTable = new Handsontable(outputTableContainer, {
         data: outputData,
         height: 250,
@@ -330,7 +336,9 @@ function initializeElements() {
         dropdownMenu: false,
         licenseKey: 'non-commercial-and-evaluation',
     });
-    
+
+
+
     inputTable = new Handsontable(inputTableContainer, {
         data: inputData,
         height: 250,
@@ -341,14 +349,14 @@ function initializeElements() {
         filters: true,
         dropdownMenu: true,
         licenseKey: 'non-commercial-and-evaluation',
-        afterChange: (changes) => {
-            plotInputData(silent=true)
-        }
+        afterChange: inputTableChangeHandler,
+        afterRemoveRow: inputTableChangeHandler,
+        afterPaste: inputTableChangeHandler
     });
-    
+
     inputExportPlugin = inputTable.getPlugin('exportFile');
     outputExportPlugin = outputTable.getPlugin('exportFile');
-    
+
     window.inputChart = new Chart(inputCtx, {
         type: 'bubble',
         data: {
@@ -394,8 +402,8 @@ function initializeElements() {
                 }
             }
         },
-    });   
-    
+    });
+
     window.outputChart = new Chart(outputCtx, {
         type: 'bubble',
         data: {
@@ -438,7 +446,7 @@ function initializeElements() {
                 }
             } : {}
         },
-    });             
+    });
 }
 
 function checkEnableZoom() {
@@ -476,7 +484,7 @@ function setHandlers() {
                 name: $('#libraryTitle').val(),
                 owner: $('#libraryOwner').val(),
                 type: $('#libraryType').val(),
-                data: dataset    
+                data: dataset
             }),
             contentType: 'application/json',
             dataType: 'json',
@@ -489,20 +497,20 @@ function setHandlers() {
             }
         })
     });
-    
+
     $('#downloadChart').click(() => {
         let inputChartBase64 = window.inputChart.toBase64Image();
         let outputChartBase64 = window.outputChart.toBase64Image();
-        
+
         saveBase64AsFile(inputChartBase64, `LBC-in-${new Date()}.png`);
         saveBase64AsFile(outputChartBase64, `LBC-out-${new Date()}.png`);
     });
-    
+
     $('#resetZoom').click(() => {
         window.inputChart.resetZoom();
         window.outputChart.resetZoom();
     })
-    
+
     $('#clearData').click(() => {
         inputData = [['','']];
         inputTable.loadData(inputData);
@@ -526,7 +534,7 @@ function setHandlers() {
         if(!dataFilled())
             return toastr.error("Data invalid or empty");
         inputExportPlugin.downloadFile('csv', {
-            bom: false,  
+            bom: false,
             columnDelimiter: ',',
             columnHeaders: true,
             rowHeaders: false,
@@ -543,7 +551,7 @@ function setHandlers() {
         if(outputData.length <= 0)
             return toastr.error("Data invalid or empty");
         outputExportPlugin.downloadFile('csv', {
-            bom: false,  
+            bom: false,
             columnDelimiter: ',',
             columnHeaders: true,
             rowHeaders: false,
@@ -555,24 +563,24 @@ function setHandlers() {
             rowDelimiter: '\r\n',
         });
     }
-        
+
     $('#getLBC').click(() => {
         getLBC();
         markDatasetReady();
     });
-    
+
     $('#genSynthetic').click(() => {
         $.ajax({
             type: 'POST',
             url: '/synthetic_data',
             data: JSON.stringify({
-                lower_l : parseFloat($('#lower_l').val()), 
-                upper_l : parseFloat($('#upper_l').val()), 
-                no_dp : parseInt($('#no_dp').val()), 
-                c0 : parseFloat($('#c0').val()), 
-                k : parseFloat($('#k').val()), 
-                a : JSON.parse($('#a').val()), 
-                sigma : parseFloat($('#sigma').val())                
+                lower_l : parseFloat($('#lower_l').val()),
+                upper_l : parseFloat($('#upper_l').val()),
+                no_dp : parseInt($('#no_dp').val()),
+                c0 : parseFloat($('#c0').val()),
+                k : parseFloat($('#k').val()),
+                a : JSON.parse($('#a').val()),
+                sigma : parseFloat($('#sigma').val())
             }),
             contentType: "application/json",
             dataType: "json",
@@ -580,15 +588,15 @@ function setHandlers() {
             success: (data) => {
                 if(data.success) {
                     inputData = data.data
-                    inputTable.loadData(inputData);                       
+                    inputTable.loadData(inputData);
                     toastr.success('Synthetic data generated')
                 } else {
                     toastr.error(`Error generating synthetic data - ${data.message}`);
                 }
-            }            
+            }
         })
     })
-}    
+}
 
 //########################### LOADING ###############################
 $(window).on('load', () => {

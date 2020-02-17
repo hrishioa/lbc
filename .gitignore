@@ -5,3 +5,4 @@ venv/*
 *.csv
 *.xlsx
 variables.sh
+*.pg_restore

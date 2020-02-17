@@ -63,22 +63,22 @@
     <div class="modal fade" id="modalShowLibrary" tabindex="-1" role="dialog" aria-labelledby="modalLibraryTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered table-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-body table-modal-body">                    
+                <div class="modal-body table-modal-body">
                     <!-- Close -->
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
-                    
+
                     <!-- Heading -->
                     <h2 class="font-weight-bold text-center mb-1" id="modalLibraryTitle">
                         Library
                     </h2>
-                    
+
                     <!-- Text -->
                     <p class="font-size-lg text-center text-muted mb-6 mb-md-8">
                         Click on a dataset to load
-                    </p>              
-                    
+                    </p>
+
                     <div class="table-responsive">
                         <table id="libraryTable" class="table table-sm table-striped table-hover">
                             <colgroup>
@@ -100,33 +100,33 @@
                             </thead>
                             <tbody>
                             </tbody>
-                        </table>                                            
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="modal fade" id="modalSave" tabindex="-1" role="dialog" aria-labelledby="modalSaveTitle" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-body">
-                    
+
                     <!-- Close -->
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
-                    
+
                     <!-- Heading -->
                     <h2 class="font-weight-bold text-center mb-1" id="modalSaveTitle">
                         Save Dataset to Library
                     </h2>
-                    
+
                     <!-- Text -->
                     <p class="font-size-lg text-center text-muted mb-6 mb-md-8">
                         Allow us to improve the correction algorithm as well as for others to view your work.
                     </p>
-                    
+
                     <!-- Form -->
                     <form>
                         <div class="row">
@@ -136,47 +136,47 @@
                                     <input type="text" class="form-control form-control-flush" id="libraryTitle" placeholder="Title of the dataset">
                                     <label for="libraryTitle">Title</label>
                                 </div>
-                                
+
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-12 col-md-6">
-                                
+
                                 <!-- Last name -->
                                 <div class="form-label-group">
                                     <input type="text" class="form-control form-control-flush" id="libraryOwner" placeholder="Created By">
                                     <label for="libraryOwner">Created By</label>
                                 </div>
-                                
+
                             </div>
-                            
+
                             <div class="col-12 col-md-6">
-                                
+
                                 <!-- Email -->
                                 <div class="form-label-group">
                                     <input type="text" class="form-control form-control-flush" id="libraryType" placeholder="Type">
                                     <label for="libraryType">Type of Input Data</label>
                                 </div>
-                                
+
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-12">
-                                
+
                                 <!-- Submit -->
                                 <button type="button" class="btn btn-block btn-primary mt-3 lift" id="saveToLibrary" data-dismiss="modal">
                                     Save Dataset
                                 </button>
-                                
+
                             </div>
                         </div>
                     </form>
-                    
+
                 </div>
             </div>
         </div>
     </div>
-     
+
     <section class="border-bottom">
         <div class="container-fluid">
             <div class="row">
@@ -197,7 +197,7 @@
                 </div>
                 <div class="col col-md-6">
                     <div>
-                        <canvas id="outputChart" width="400" height="400"></canvas>        
+                        <canvas id="outputChart" width="400" height="400"></canvas>
                     </div>
                 </div>
             </div>
@@ -206,34 +206,34 @@
                     <div class="custom-file">
                         <input type="file" class="custom-file-input" id="input_file" />
                         <label class="custom-file-label" id="input_file_label" for="input_file">Load Input File (CSV/XLSX)</label>
-                    </div>        
+                    </div>
                 </div>
             </div>
             <div class="row mb-3 justify-content-center">
                 <h3 id="signal_magnitude" style="display:none">Signal Magnitude: --</h3>
                 <div class="col-auto my-3">
                     <a class="btn btn-block btn-success lift" id="showLoadModal" data-toggle="modal" href="#modalShowLibrary">View Library</a>
-                </div>                    
+                </div>
                 <div class="col-auto my-3">
                     <a class="btn btn-block btn-success lift" id="showSaveModal" data-toggle="modal" href="#modalSave">Save</a>
-                </div>                    
+                </div>
                 <div class="col-auto my-3">
                     <button class="btn btn-block btn-success lift" id="downloadChart">Download Charts</button>
-                </div>                    
+                </div>
                 <div class="col-auto my-3">
                     <button class="btn btn-block btn-success lift" id="exportData">Download Data</button>
-                </div>                    
+                </div>
             </div>
         </div>
     </section>
-    
+
     <section class="bg-gray-200 py-8 border-bottom">
         <div class="row mx-5 mx-lg-10">
             <div class="col my-4">
                 <div class="card card-border border-primary">
                     <div class="card-body">
                         <h2 class="card-title">Generate synthetic data</h2>
-                            <form>  
+                            <form>
                                 <div class="row">
                                     <div class="col">
                                         <div class="form-label-group">
@@ -353,13 +353,13 @@
                 <div>
                     <span id="clearData" class="btn lift mt-3 mr-3 btn-primary badge badge-primary badge-pill badge-float badge-float-inside">
                             Clear Data
-                    </span>                                            
-                    <div id="outputSpreadsheet"></div>                    
+                    </span>
+                    <div id="outputSpreadsheet"></div>
                 </div>
             </div>
         </div>
     </section>
-        
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/handsontable/7.1.1/handsontable.full.min.js" async></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0" async defer></script>
@@ -367,11 +367,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.4" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js" async defer></script>
     <script src="/static/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script src="/static/assets/js/theme.min.js"></script>
-    
+
     <!-- Chart Script -->
     <script src="index.js" async defer></script>
-    
+
 </body>
 </html>

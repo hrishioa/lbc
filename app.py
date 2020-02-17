@@ -53,7 +53,7 @@ def get_library_table():
 def server_static(path):
     if not os.path.isfile(os.path.join(STATIC_FOLDER, path)):
         return abort(404)
- 
+
     return send_from_directory(STATIC_FOLDER, path)
 
 
@@ -65,14 +65,14 @@ def save_dataset():
 
         library, conn = get_library_table()
         insert_statement = library.insert().values(
-            name=data_params["name"], 
+            name=data_params["name"],
             owner=data_params["owner"],
             type=data_params["type"],
             loads=0,
             liked=0,
             data=json.dumps(data_params["data"]))
         conn.execute(insert_statement)
-        
+
         return jsonify({
             "success": True,
             "message": "Testing"
@@ -102,7 +102,7 @@ def load_dataset():
             })
 
         library, conn = get_library_table()
-        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.loads, library.columns.type]).where(library.columns.id==data_params["id"]).limit(1))    
+        rowProxy = conn.execute(select([library.columns.name, library.columns.data, library.columns.id, library.columns.owner, library.columns.loads, library.columns.type]).where(library.columns.id==data_params["id"]).limit(1))
         if rowProxy.rowcount <= 0:
             return jsonify({
                 "success": False,
@@ -138,7 +138,7 @@ def like_dataset():
                 "success": False,
                 "message": "Required parameter id is missing"
             })
-        
+
 
         library, conn = get_library_table()
         conn.execute(library.update().where(library.columns.id==data_params["id"]).values(liked=library.columns.liked+1))
@@ -157,7 +157,7 @@ def like_dataset():
         try:
             conn.close()
         except:
-            pass   
+            pass
 
 @app.route('/get_library', methods=['POST'])
 def get_library():
@@ -212,14 +212,16 @@ def upload_file():
         extension = get_file_extension(filename)
         loaded = None
         error_message = None
-        if extension == "csv" or extension == "tsv":
+        if extension == "csv" or extension == "tsv" or extension == "txt":
             try:
-                loaded = pd.read_csv(filepath, header=None).to_numpy().astype(float64)
-            except:
+                loaded = pd.read_csv(filepath, header=None, sep=None).to_numpy().astype(float64)
+            except Exception as e:
+                print(e)
                 # Try it without headers
                 try:
-                    loaded = pd.read_csv(filepath).to_numpy().astype(float64)
-                except:
+                    loaded = pd.read_csv(filepath, sep=None).to_numpy().astype(float64)
+                except Exception as e2:
+                    print(e2)
                     error_message = "csv is invalid or not fully numeric"
         elif extension == "xlsx" or extension == "xls":
             try:
@@ -262,7 +264,7 @@ def synthetic_data():
         for header in argument_headers:
             if header not in data_params:
                 return jsonify({"success":False, "message":  "Missing parameter %s" % header})
-            arguments[header] = data_params[header] if header in argument_not_float else float(data_params[header]) 
+            arguments[header] = data_params[header] if header in argument_not_float else float(data_params[header])
 
         data = LBC.synthetic_data(**arguments)
         return jsonify({"success":True, "data": data.tolist()})
@@ -290,12 +292,12 @@ def lbc():
                 else:
                     arguments[header] = float(input_data[header])
             elif not header in argument_optional:
-                return jsonify({"success": False, "message": "Required parameter %s missing." % header}) 
+                return jsonify({"success": False, "message": "Required parameter %s missing." % header})
 
         result = LBC.elevator_function_fitting(**arguments)
 
         return jsonify({
-            "success": True, 
+            "success": True,
             "corrected": result["corrected"].tolist(),
             "input_baseline": result["input_baseline"].tolist(),
             "baseline_step_fit": result["baseline_step_fit"].tolist(),
@@ -315,7 +317,7 @@ def index():
 
 @app.route('/index2')
 def index2():
-    return current_app.send_static_file('index2.html')
+    return current_app.send_static_file('modaltest.html')
 
 @app.route('/index.js')
 def send_js():

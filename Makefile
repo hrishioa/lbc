@@ -10,7 +10,7 @@ wsgi:
 	uwsgi --http :80 --wsgi-file app.py --callable app --processes 4 --threads 2
 
 dbtunnel:
-	ssh -NL 2222:localhost:5432 root@lbc
+	ssh -NL 2222:localhost:5432 root@zork
 
 repl:
 	source ./venv/bin/activate; \
