@@ -49,12 +49,12 @@ def get_library_table():
         library_table = Table(LIBRARY_TABLENAME, metadata, autoload=True, autoload_with=db)
     return library_table, conn
 
-@app.route('/static/<path:path>', methods=['GET'])
-def server_static(path):
-    if not os.path.isfile(os.path.join(STATIC_FOLDER, path)):
-        return abort(404)
-
-    return send_from_directory(STATIC_FOLDER, path)
+# @app.route('/static/<path:path>', methods=['GET'])
+# def server_static(path):
+#     if not os.path.isfile(os.path.join(STATIC_FOLDER, path)):
+#         return abort(404)
+#
+#     return send_from_directory(STATIC_FOLDER, path)
 
 
 @app.route('/save_to_library', methods=['POST'])
