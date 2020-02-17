@@ -178,6 +178,8 @@ function getLBC() {
             if(!data.success)
                 return toastr.error(`Error computing LBC - ${data.message}`);
 
+            $('#magnitude').show(500);
+            $('#magnitude').html(`Signal: ${Math.round(data["signal_magnitude"]*10000)/10000.0}`);
             $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
             chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
             chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
@@ -209,7 +211,7 @@ function markDatasetReady() {
         "lower_l": $('#lower_l').val(),
         "upper_l": $('#upper_l').val(),
         "no_dp": $('#no_dp').val(),
-        "c0": $('#c0').val(),
+        "c0": 1,
         "k": $('#k').val(),
         "a": JSON.parse($('#a').val()),
         "sigma": $('#sigma').val(),
@@ -570,31 +572,37 @@ function setHandlers() {
     });
 
     $('#genSynthetic').click(() => {
-        $.ajax({
-            type: 'POST',
-            url: '/synthetic_data',
-            data: JSON.stringify({
-                lower_l : parseFloat($('#lower_l').val()),
-                upper_l : parseFloat($('#upper_l').val()),
-                no_dp : parseInt($('#no_dp').val()),
-                c0 : parseFloat($('#c0').val()),
-                k : parseFloat($('#k').val()),
-                a : JSON.parse($('#a').val()),
-                sigma : parseFloat($('#sigma').val())
-            }),
-            contentType: "application/json",
-            dataType: "json",
-            failure: (errMsg) => toastr.error(`Error generating data - ${errMsg}`),
-            success: (data) => {
-                if(data.success) {
-                    inputData = data.data
-                    inputTable.loadData(inputData);
-                    toastr.success('Synthetic data generated')
-                } else {
-                    toastr.error(`Error generating synthetic data - ${data.message}`);
+        try {
+            let params = {
+                type: 'POST',
+                url: '/synthetic_data',
+                data: JSON.stringify({
+                    lower_l : parseFloat($('#lower_l').val()),
+                    upper_l : parseFloat($('#upper_l').val()),
+                    no_dp : parseInt($('#no_dp').val()),
+                    c0 : 1.0,
+                    k : parseFloat($('#k').val()),
+                    a : JSON.parse($('#a').val()),
+                    sigma : parseFloat($('#sigma').val())
+                }),
+                contentType: "application/json",
+                dataType: "json",
+                failure: (errMsg) => toastr.error(`Error generating data - ${errMsg}`),
+                success: (data) => {
+                    if(data.success) {
+                        inputData = data.data
+                        inputTable.loadData(inputData);
+                        toastr.success('Synthetic data generated')
+                    } else {
+                        toastr.error(`Error generating synthetic data - ${data.message}`);
+                    }
                 }
-            }
-        })
+            };
+            $.ajax(params);
+        } catch(e) {
+            toastr.error("Invalid parameters for synthetic generator.");
+        }
+
     })
 }
 
