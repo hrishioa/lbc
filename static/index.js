@@ -132,8 +132,22 @@ function loadLibrary(silent=true) {
 }
 
 function parseInputData() {
+
     // Jesus fuck localization
-    return inputData.map(insides=>insides.map(val => parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))))
+    let parsed = inputData.map(insides=>insides.map(val => {
+        try {
+            return parseFloat(val.toString().replace(/,([^,]*)$/, ".$1"))
+        } catch(err) {
+            return null;
+        }
+    }));
+
+    // return parsed;
+
+    parsed = parsed.filter(row => row.indexOf(null) === -1);
+    inputData = parsed;
+
+    return parsed;
 }
 
 function plotInputData(silent=true) {
