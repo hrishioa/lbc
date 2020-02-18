@@ -19,7 +19,7 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
-    ALLOWED_EXTENSIONS = ['xlsx', 'xls', 'csv', 'tsv']
+    ALLOWED_EXTENSIONS = ['xlsx', 'xls', 'csv', 'tsv', 'txt']
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -208,18 +208,21 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
+        print("Loading file "+filepath)
+
         # Process the file
         extension = get_file_extension(filename)
         loaded = None
         error_message = None
         if extension == "csv" or extension == "tsv" or extension == "txt":
             try:
-                loaded = pd.read_csv(filepath, header=None, sep=None).to_numpy().astype(float64)
+                loaded = pd.read_csv(filepath, header=None, sep=None, engine="python").to_numpy().astype(float64)
             except Exception as e:
                 print(e)
                 # Try it without headers
                 try:
-                    loaded = pd.read_csv(filepath, sep=None).to_numpy().astype(float64)
+                    print("Trying without headers")
+                    loaded = pd.read_csv(filepath, sep=None, engine="python").to_numpy().astype(float64)
                 except Exception as e2:
                     print(e2)
                     error_message = "csv is invalid or not fully numeric"
