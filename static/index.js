@@ -382,10 +382,10 @@ function initializeElements() {
         type: 'bubble',
         data: {
             datasets: [
-                chartInputDataset,
-                chartSelectedBaseline,
                 chartLogisticBaselineFit,
                 chartExtractedBaseline,
+                chartSelectedBaseline,
+                chartInputDataset,
             ]
         },
         options: {
