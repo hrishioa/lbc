@@ -79,7 +79,7 @@ function getLibraryLoader(id) {
                 loadLibrary();
 
                 toastr.success("Loaded dataset");
-
+                greySynthetic();
                 getLBC();
 
                 $('#modalShowLibrary').modal('hide');
@@ -244,11 +244,16 @@ function loadInputFile() {
                 inputTable.loadData(inputData);
                 toastr.success('Data successfully loaded');
                 plotInputData(silent=false);
+                greySynthetic();
             } else {
                 toastr.error(`Error loading file - ${data.message}`);
             }
         }
     })
+}
+
+function greySynthetic() {
+    $('#synthetic-card').addClass('greyed');
 }
 
 function inputTableChangeHandler() {
