@@ -179,7 +179,7 @@ function getLBC() {
                 return toastr.error(`Error computing LBC - ${data.message}`);
 
             $('#magnitude').show(500);
-            $('#magnitude').html(`Signal: ${Math.round(data["signal_magnitude"]*10000)/10000.0}`);
+            $('#magnitude').html(`Feature Magnitude: ${Math.round(data["signal_magnitude"]*10000)/10000.0}`);
             $('#signal_magnitude').html(`Signal Magnitude: ${data["signal_magnitude"]}`);
             chartCorrectedData.data = data.corrected.map(row => ({x:row[0],y:row[1]}));
             chartSelectedBaseline.data = data["input_baseline"].map(row => ({x:row[0],y:row[1]}));
