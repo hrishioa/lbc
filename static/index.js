@@ -41,6 +41,7 @@ function clearData() {
     chartExtractedBaseline.data = [];
     window.inputChart.update();
     window.outputChart.update();
+    $('#magnitude').hide(500);
 }
 
 function getDatasetLiker(id) {
