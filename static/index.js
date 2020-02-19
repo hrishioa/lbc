@@ -4,8 +4,10 @@ let chartInputDataset, chartCorrectedData, chartSelectedBaseline, chartLogisticB
 let outputTable, inputTable, inputExportPlugin, outputExportPlugin;
 let outputTableContainer = document.getElementById('outputSpreadsheet');
 let inputTableContainer = document.getElementById('inputSpreadsheet');
-let inputData = [['','']];
-let outputData = [];
+let inputDataDefault = [['','']];
+let inputData = inputDataDefault;
+let outputDataDefault = [];
+let outputData = outputDataDefault;
 let dataset = {
     loaded: false,
     ready: false,
@@ -25,6 +27,20 @@ function dataFilled() {
         return true;
     }
     return false;
+}
+
+function clearData() {
+    inputData = [['','']];
+    inputTable.loadData(inputData);
+    outputData = [];
+    outputTable.loadData(outputData);
+    chartInputDataset.data = [];
+    chartCorrectedData.data = [];
+    chartSelectedBaseline.data = [];
+    chartLogisticBaselineFit.data = [];
+    chartExtractedBaseline.data = [];
+    window.inputChart.update();
+    window.outputChart.update();
 }
 
 function getDatasetLiker(id) {
@@ -72,6 +88,8 @@ function getLibraryLoader(id) {
                     else
                         $(`#${param}`).val(dataSet.syntheticParameters[param])
                 }
+
+                clearData();
 
                 inputData = dataSet.input;
                 inputTable.loadData(inputData);
@@ -532,19 +550,7 @@ function setHandlers() {
         window.outputChart.resetZoom();
     })
 
-    $('#clearData').click(() => {
-        inputData = [['','']];
-        inputTable.loadData(inputData);
-        outputData = [];
-        outputTable.loadData(outputData);
-        chartInputDataset.data = [];
-        chartCorrectedData.data = [];
-        chartSelectedBaseline.data = [];
-        chartLogisticBaselineFit.data = [];
-        chartExtractedBaseline.data = [];
-        window.inputChart.update();
-        window.outputChart.update();
-    })
+    $('#clearData').click(clearData)
 
     $('#exportData').click(() => {
         exportInputToCSV();
@@ -609,6 +615,7 @@ function setHandlers() {
                 failure: (errMsg) => toastr.error(`Error generating data - ${errMsg}`),
                 success: (data) => {
                     if(data.success) {
+                        clearData();
                         inputData = data.data
                         inputTable.loadData(inputData);
                         toastr.success('Synthetic data generated')
