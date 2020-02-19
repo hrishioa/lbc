@@ -289,7 +289,11 @@ function greySynthetic() {
     $('#synthetic-card').addClass('greyed');
 }
 
-function inputTableChangeHandler() {
+function inputTableChangeHandler(index, amount, physicalRows) {
+    if((index==0 || index) && amount)
+        console.log("Index is ",index, " amount is ",amount, " rows are ", physicalRows);
+    if(inputTable)
+        inputData = inputTable.getData();
     console.log("Changes happened");
     plotInputData(silent=true);
 }
