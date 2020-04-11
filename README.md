@@ -7,7 +7,7 @@ A new method for baseline-correction is implemented here, that can account of si
 
 ## Dependencies
 
-Please install [Postgres](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04) and [Python3](https://www.python.org/downloads/). Create a new postgres database to store the library, and install python3 to process.
+Please install [Postgres](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04) and [Python3](https://www.python.org/downloads/). Create a new postgres database if you would like to enable to library. The tool will still work without a database, but you will be unable to save your LBC configuration.
 
 ## Development setup
 
