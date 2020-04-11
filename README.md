@@ -7,7 +7,7 @@ A new method for baseline-correction is implemented here, that can account of si
 
 ## Dependencies
 
-The project uses [Postgres] and [Python3]. Create a new postgres database to store the library, and install python3 to process.
+Please install [Postgres](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04) and [Python3](https://www.python.org/downloads/). Create a new postgres database to store the library, and install python3 to process.
 
 ## Development setup
 
@@ -37,3 +37,6 @@ make run
 Jacob Schneidewind - [Papers](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=jacob+schneidewind&btnG=)
 Hrishi Olickel – [Writeups](https://hrishioa.github.io), [Papers](https://scholar.google.com/citations?user=CkqOqj4AAAAJ&hl=en&oi=ao)
 
+## LBC Core Code
+
+The core LBC code can be found in [LBC.py](LBC.py), or at [github.com/jschneidewind/LBC](https://github.com/jschneidewind/LBC).
